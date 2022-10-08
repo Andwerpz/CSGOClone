@@ -22,7 +22,7 @@ public abstract class Weapon {
 	private float recoilScale = 0.01f;
 	private float recoilScreenScale = 0.5f; //a value of 1 means that the bullet will land on the crosshair always
 
-	private float recoilVerticalImpulse;	//6 is rifle
+	private float recoilVerticalImpulse; //6 is rifle
 	private float recoilHorizontalImpulse = 0;
 
 	private float movementInaccuracyMinimum = 0.02f; //minimum movement speed required to trigger movement inaccuracy
@@ -38,9 +38,7 @@ public abstract class Weapon {
 	private long reloadStartMillis;
 	private long reloadTimeMillis;
 
-	public Weapon(int magazineAmmoSize, int reserveAmmoSize, long fireDelayMillis, float recoilVerticalImpulse, 
-			float movementInaccuracyScale, float weaponInaccuracy, int weaponDamage, float weaponDamageFalloffDist, float weaponDamageFalloffPercent,
-			long reloadTimeMillis) {
+	public Weapon(int magazineAmmoSize, int reserveAmmoSize, long fireDelayMillis, float recoilVerticalImpulse, float movementInaccuracyScale, float weaponInaccuracy, int weaponDamage, float weaponDamageFalloffDist, float weaponDamageFalloffPercent, long reloadTimeMillis) {
 		this.magazineAmmoSize = magazineAmmoSize;
 		this.reserveAmmoSize = reserveAmmoSize;
 		this.fireDelayMillis = fireDelayMillis;
@@ -51,11 +49,11 @@ public abstract class Weapon {
 		this.weaponDamageFalloffDist = weaponDamageFalloffDist;
 		this.weaponDamageFalloffPercent = weaponDamageFalloffPercent;
 		this.reloadTimeMillis = reloadTimeMillis;
-		
+
 		this.magazineAmmo = this.magazineAmmoSize;
 		this.reserveAmmo = this.reserveAmmoSize;
 	}
-	
+
 	public abstract String getModelName();
 
 	public boolean canShoot() {
@@ -114,31 +112,31 @@ public abstract class Weapon {
 	public float[] getGunRecoilOffset() {
 		float xRot = -this.recoilVerticalRot * this.recoilScale * 0.7f;
 		float yRot = -this.recoilHorizontalRot * this.recoilScale * 0.7f;
-		
+
 		float yOffset = this.recoilVerticalRot * this.recoilScale * 0.1f;
 		float zOffset = this.recoilVerticalRot * this.recoilScale * 1f;
 
 		return new float[] { xRot, yRot, yOffset, zOffset };
 	}
-	
+
 	public float[] getCameraRecoilOffset() {
 		float xRot = -this.recoilVerticalRot * this.recoilScale * this.recoilScreenScale;
 		float yRot = -this.recoilHorizontalRot * this.recoilScale * this.recoilScreenScale;
-		return new float[] {xRot, yRot};
+		return new float[] { xRot, yRot };
 	}
-	
+
 	public int getDamage(float dist) {
 		return (int) Math.ceil(this.weaponDamage * Math.pow(1.0 - this.weaponDamageFalloffPercent, dist / this.weaponDamageFalloffDist));
 	}
-	
+
 	public int getReserveAmmo() {
 		return this.reserveAmmo;
 	}
-	
+
 	public int getMagazineAmmo() {
 		return this.magazineAmmo;
 	}
-	
+
 	public void resetAmmo() {
 		this.reserveAmmo = this.reserveAmmoSize;
 		this.magazineAmmo = this.magazineAmmoSize;
@@ -148,12 +146,11 @@ public abstract class Weapon {
 		if (this.reloading) {
 			this.reload();
 		}
-		
+
 		this.fireMillisCounter += Main.main.deltaMillis;
-		if(!leftMouse){
+		if (!leftMouse || this.reloading) {
 			this.fireMillisCounter = Math.min(this.fireMillisCounter, this.fireDelayMillis);
 		}
-		
 
 		this.recoilVerticalRot -= this.recoilVerticalRot * this.recoilRecoverySpeedPercent + this.recoilRecoverySpeedLinear;
 		this.recoilHorizontalRot -= this.recoilHorizontalRot * this.recoilRecoverySpeedPercent;
