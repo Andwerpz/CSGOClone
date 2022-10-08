@@ -22,10 +22,10 @@ public abstract class Weapon {
 	private float recoilScale = 0.01f;
 	private float recoilScreenScale = 0.5f; //a value of 1 means that the bullet will land on the crosshair always
 
-	private float recoilVerticalImpulse;
-	private float recoilHorizontalImpulse;
+	private float recoilVerticalImpulse;	//6 is rifle
+	private float recoilHorizontalImpulse = 0;
 
-	private float movementInaccuracyMinimum = 0.05f; //minimum movement speed required to trigger movement inaccuracy
+	private float movementInaccuracyMinimum = 0.02f; //minimum movement speed required to trigger movement inaccuracy
 	private float movementInaccuracyScale; //500 is smg, 1000 is rifle
 
 	private float weaponInaccuracy; //2 is rifle
@@ -38,14 +38,28 @@ public abstract class Weapon {
 	private long reloadStartMillis;
 	private long reloadTimeMillis;
 
-	private float bulletXRot, bulletYRot; //after shooting, this is the computed deviation for the bullet. 
-
-	public Weapon() {
-
+	public Weapon(int magazineAmmoSize, int reserveAmmoSize, long fireDelayMillis, float recoilVerticalImpulse, 
+			float movementInaccuracyScale, float weaponInaccuracy, int weaponDamage, float weaponDamageFalloffDist, float weaponDamageFalloffPercent,
+			long reloadTimeMillis) {
+		this.magazineAmmoSize = magazineAmmoSize;
+		this.reserveAmmoSize = reserveAmmoSize;
+		this.fireDelayMillis = fireDelayMillis;
+		this.recoilVerticalImpulse = recoilVerticalImpulse;
+		this.movementInaccuracyScale = movementInaccuracyScale;
+		this.weaponInaccuracy = weaponInaccuracy;
+		this.weaponDamage = weaponDamage;
+		this.weaponDamageFalloffDist = weaponDamageFalloffDist;
+		this.weaponDamageFalloffPercent = weaponDamageFalloffPercent;
+		this.reloadTimeMillis = reloadTimeMillis;
+		
+		this.magazineAmmo = this.magazineAmmoSize;
+		this.reserveAmmo = this.reserveAmmoSize;
 	}
+	
+	public abstract String getModelName();
 
-	private boolean canShoot() {
-		return this.fireMillisCounter > this.fireDelayMillis && this.magazineAmmo > 0 && !this.reloading;
+	public boolean canShoot() {
+		return this.fireMillisCounter >= this.fireDelayMillis && this.magazineAmmo > 0 && !this.reloading;
 	}
 
 	private void reload() {
@@ -98,22 +112,48 @@ public abstract class Weapon {
 
 	//xRot, yRot, yOffset, zOffset
 	public float[] getGunRecoilOffset() {
-
+		float xRot = -this.recoilVerticalRot * this.recoilScale * 0.7f;
+		float yRot = -this.recoilHorizontalRot * this.recoilScale * 0.7f;
+		
 		float yOffset = this.recoilVerticalRot * this.recoilScale * 0.1f;
 		float zOffset = this.recoilVerticalRot * this.recoilScale * 1f;
 
-		float xRot = -this.recoilVerticalRot * this.recoilScale * 0.7f;
-		float yRot = -this.recoilHorizontalRot * this.recoilScale * 0.7f;
-
 		return new float[] { xRot, yRot, yOffset, zOffset };
 	}
+	
+	public float[] getCameraRecoilOffset() {
+		float xRot = -this.recoilVerticalRot * this.recoilScale * this.recoilScreenScale;
+		float yRot = -this.recoilHorizontalRot * this.recoilScale * this.recoilScreenScale;
+		return new float[] {xRot, yRot};
+	}
+	
+	public int getDamage(float dist) {
+		return (int) Math.ceil(this.weaponDamage * Math.pow(1.0 - this.weaponDamageFalloffPercent, dist / this.weaponDamageFalloffDist));
+	}
+	
+	public int getReserveAmmo() {
+		return this.reserveAmmo;
+	}
+	
+	public int getMagazineAmmo() {
+		return this.magazineAmmo;
+	}
+	
+	public void resetAmmo() {
+		this.reserveAmmo = this.reserveAmmoSize;
+		this.magazineAmmo = this.magazineAmmoSize;
+	}
 
-	public void update() {
+	public void update(boolean leftMouse) {
 		if (this.reloading) {
 			this.reload();
 		}
-
-		this.fireMillisCounter = Math.min(this.fireMillisCounter + Main.main.deltaMillis, this.fireDelayMillis);
+		
+		this.fireMillisCounter += Main.main.deltaMillis;
+		if(!leftMouse){
+			this.fireMillisCounter = Math.min(this.fireMillisCounter, this.fireDelayMillis);
+		}
+		
 
 		this.recoilVerticalRot -= this.recoilVerticalRot * this.recoilRecoverySpeedPercent + this.recoilRecoverySpeedLinear;
 		this.recoilHorizontalRot -= this.recoilHorizontalRot * this.recoilRecoverySpeedPercent;

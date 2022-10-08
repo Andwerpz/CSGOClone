@@ -45,6 +45,10 @@ import util.NetworkingUtils;
 import util.Pair;
 import util.Vec3;
 import util.Vec4;
+import weapon.AK47;
+import weapon.AWP;
+import weapon.M4A4;
+import weapon.Weapon;
 
 public class GameState extends State {
 
@@ -95,39 +99,8 @@ public class GameState extends State {
 	private Text healthText;
 	private int health = 100;
 	private boolean isDead = false;
-
-	private Text magazineAmmoText, reserveAmmoText;
-	private int magazineAmmoSize = 30;
-	private int magazineAmmo = 30;
-
-	private int reserveAmmoSize = 90;
-	private int reserveAmmo = 90;
-
-	private long fireDelayMillis = 100;
-	private long fireMillisCounter = 0;
-
-	private float recoilRecoverySpeedPercent = 0.025f;
-	private float recoilRecoverySpeedLinear = 0.4f;
-	private float recoilVerticalRot = 0f;
-	private float recoilHorizontalRot = 0f;
-	private float recoilScale = 0.01f;
-	private float recoilScreenScale = 0.5f; //a value of 1 means that the bullet will land on the crosshair always
-
-	private float recoilVerticalImpulse = 6f;
-	private float recoilHorizontalImpulse = 0f;
-
-	private float movementInaccuracyMinimum = 0.05f; //minimum movement speed required to trigger movement inaccuracy
-	private float movementInaccuracyScale = 1000f; //500 is like an smg
-
-	private float weaponInaccuracy = 2f;
-
-	private int weaponDamage = 30;
-	private float weaponDamageFalloffDist = 7f;
-	private float weaponDamageFalloffPercent = 0.04f;
-
-	private boolean reloading = false;
-	private long reloadStartMillis;
-	private long reloadTimeMillis = 1000;
+	
+	private Text reserveAmmoText, magazineAmmoText;
 
 	private long playermodelID;
 	private boolean playermodelLeftHanded = false;
@@ -136,6 +109,8 @@ public class GameState extends State {
 	private long serverMessageActiveMillis = 10000;
 	private int serverMessagesVerticalGap = 5;
 	private int serverMessagesHorizontalGap = 20;
+	
+	private Weapon weapon;
 
 	public GameState(StateManager sm, String ip, int port, boolean hosting) {
 		super(sm);
@@ -182,7 +157,8 @@ public class GameState extends State {
 		// -- PLAYERMODEL SCENE --
 		this.clearScene(PLAYERMODEL_SCENE);
 		Light.addLight(PLAYERMODEL_SCENE, new DirLight(new Vec3(0.3f, -1f, -0.5f), new Vec3(0.8f), 0.3f));
-		this.playermodelID = Model.addInstance(AssetManager.getModel("ak47"), Mat4.identity(), PLAYERMODEL_SCENE);
+		this.weapon = new AWP();
+		this.playermodelID = Model.addInstance(AssetManager.getModel(this.weapon.getModelName()), Mat4.identity(), PLAYERMODEL_SCENE);
 
 		// -- DECAL SCENE --
 		this.clearScene(DECAL_SCENE);
@@ -201,11 +177,11 @@ public class GameState extends State {
 		this.healthText.setFrameAlignmentStyle(UIElement.FROM_LEFT, UIElement.FROM_BOTTOM);
 		this.healthText.setContentAlignmentStyle(UIElement.ALIGN_LEFT, UIElement.ALIGN_BOTTOM);
 
-		this.reserveAmmoText = new Text(20, 20, this.reserveAmmo + "", FontUtils.segoe_ui.deriveFont(Font.BOLD, 24), new Material(new Vec4(1)), UI_SCENE);
+		this.reserveAmmoText = new Text(20, 20, this.weapon.getReserveAmmo() + "", FontUtils.segoe_ui.deriveFont(Font.BOLD, 24), new Material(new Vec4(1)), UI_SCENE);
 		this.reserveAmmoText.setFrameAlignmentStyle(UIElement.FROM_RIGHT, UIElement.FROM_BOTTOM);
 		this.reserveAmmoText.setContentAlignmentStyle(UIElement.ALIGN_RIGHT, UIElement.ALIGN_BOTTOM);
 
-		this.magazineAmmoText = new Text(60, 20, this.magazineAmmo + "", FontUtils.segoe_ui.deriveFont(Font.BOLD, 36), new Material(new Vec4(1)), UI_SCENE);
+		this.magazineAmmoText = new Text(60, 20, this.weapon.getMagazineAmmo() + "", FontUtils.segoe_ui.deriveFont(Font.BOLD, 36), new Material(new Vec4(1)), UI_SCENE);
 		this.magazineAmmoText.setFrameAlignmentStyle(UIElement.FROM_RIGHT, UIElement.FROM_BOTTOM);
 		this.magazineAmmoText.setContentAlignmentStyle(UIElement.ALIGN_RIGHT, UIElement.ALIGN_BOTTOM);
 
@@ -295,60 +271,23 @@ public class GameState extends State {
 	}
 
 	private boolean canShoot() {
-		return this.fireMillisCounter > this.fireDelayMillis && this.magazineAmmo > 0 && !this.reloading && !this.pauseMenuActive && !this.isDead;
+		return this.weapon.canShoot() && !this.pauseMenuActive && !this.isDead;
 	}
 
 	private void shoot() {
 		if (this.canShoot()) {
-			this.fireMillisCounter %= this.fireDelayMillis;
-
-			float spread = this.weaponInaccuracy;
-			float movementSpeed = this.player.vel.length();
-			if (movementSpeed > this.movementInaccuracyMinimum) {
-				spread += movementSpeed * this.movementInaccuracyScale;
-			}
-
-			float totalYRot = player.camYRot - (this.recoilHorizontalRot + (float) (Math.random() * spread - spread / 2)) * this.recoilScale;
-			float totalXRot = player.camXRot - (this.recoilVerticalRot + (float) (Math.random() * spread - spread / 2)) * this.recoilScale;
-			Vec3 ray_dir = new Vec3(0, 0, -1).rotateX(totalXRot).rotateY(totalYRot);
+			Vec3 ray_dir = this.weapon.shoot(this.player);
 			Vec3 ray_origin = perspectiveScreen.getCamera().getPos();
+			
 			this.client.addBulletRay(ray_origin, ray_dir);
 			this.bulletRays.add(new Pair<Integer, Vec3[]>(-1, new Vec3[] { ray_origin, ray_dir }));
 			this.computeBulletDamage(ray_origin, ray_dir);
-
-			this.magazineAmmo--;
-
-			if (this.magazineAmmo == 0) {
-				this.startReloading();
-			}
-
-			//apply recoil
-			this.recoilVerticalRot += this.recoilVerticalImpulse;
-			this.recoilHorizontalRot += this.recoilHorizontalImpulse;
-
-		}
-	}
-
-	private void reload() {
-		if (System.currentTimeMillis() - this.reloadStartMillis >= this.reloadTimeMillis) {
-			this.reserveAmmo += this.magazineAmmo;
-			int transferAmmo = this.magazineAmmoSize + Math.min(this.reserveAmmo - this.magazineAmmoSize, 0);
-			this.reserveAmmo = Math.max(0, this.reserveAmmo - this.magazineAmmoSize);
-			this.magazineAmmo = transferAmmo;
-			this.reloading = false;
-		}
-	}
-
-	private void startReloading() {
-		if (this.magazineAmmo != this.magazineAmmoSize && this.reserveAmmo != 0 && !this.reloading) {
-			this.reloading = true;
-			this.reloadStartMillis = System.currentTimeMillis();
 		}
 	}
 
 	private void updateHud() {
-		this.magazineAmmoText.setText(this.magazineAmmo + "");
-		this.reserveAmmoText.setText(this.reserveAmmo + "");
+		this.magazineAmmoText.setText(this.weapon.getMagazineAmmo() + "");
+		this.reserveAmmoText.setText(this.weapon.getReserveAmmo() + "");
 
 		this.healthText.setText(this.health + "");
 
@@ -410,7 +349,7 @@ public class GameState extends State {
 			float capsuleIntersectDist = new Vec3(ray_origin, intersect).length();
 			if (mapIntersectDist > capsuleIntersectDist) {
 				//scale damage
-				int damage = (int) Math.ceil(this.weaponDamage * Math.pow(1.0 - this.weaponDamageFalloffPercent, capsuleIntersectDist / this.weaponDamageFalloffDist));
+				int damage = this.weapon.getDamage(capsuleIntersectDist);
 				this.client.addDamageSource(ID, damage);
 			}
 		}
@@ -422,8 +361,7 @@ public class GameState extends State {
 		this.health = MAX_HEALTH;
 		this.isDead = false;
 
-		this.reserveAmmo = this.reserveAmmoSize;
-		this.magazineAmmo = this.magazineAmmoSize;
+		this.weapon.resetAmmo();
 
 		this.client.respawn(this.health);
 		this.enablePlayerControls();
@@ -486,23 +424,10 @@ public class GameState extends State {
 		}
 
 		// -- SHOOTING --
-		if (this.reloading) {
-			this.reload();
-		}
-
-		this.fireMillisCounter += Main.main.deltaMillis;
-		if (this.leftMouse) {
+		if(this.leftMouse) {
 			this.shoot();
 		}
-		else {
-			this.fireMillisCounter = Math.min(this.fireMillisCounter, this.fireDelayMillis);
-		}
-
-		this.recoilVerticalRot -= this.recoilVerticalRot * this.recoilRecoverySpeedPercent + this.recoilRecoverySpeedLinear;
-		this.recoilHorizontalRot -= this.recoilHorizontalRot * this.recoilRecoverySpeedPercent;
-
-		this.recoilVerticalRot = Math.max(this.recoilVerticalRot, 0);
-		this.recoilHorizontalRot = Math.max(this.recoilHorizontalRot, 0);
+		this.weapon.update(this.leftMouse);
 
 		// -- NETWORKING --
 
@@ -643,15 +568,20 @@ public class GameState extends State {
 		Entity.updateEntities();
 
 		// -- PLAYERMODEL --
-		Vec3 playermodelOffset = new Vec3(0.2f, -0.25f + this.recoilVerticalRot * this.recoilScale * 0.1f, -0.55f + this.recoilVerticalRot * this.recoilScale * 1f);
+		float[] offset = this.weapon.getGunRecoilOffset();
+		float xRot = offset[0];
+		float yRot = offset[1];
+		float yOffset = offset[2];
+		float zOffset = offset[3];
+		Vec3 playermodelOffset = new Vec3(0.2f, -0.25f + yOffset, -0.55f + zOffset);
 		if (this.playermodelLeftHanded) {
 			playermodelOffset.x = -playermodelOffset.x;
 		}
 
 		Mat4 playermodelMat4 = Mat4.scale(1f);
 		playermodelMat4.muli(Mat4.translate(playermodelOffset));
-		playermodelMat4.muli(Mat4.rotateX(this.player.camXRot - this.recoilVerticalRot * this.recoilScale * 0.7f));
-		playermodelMat4.muli(Mat4.rotateY(this.player.camYRot));
+		playermodelMat4.muli(Mat4.rotateX(this.player.camXRot + xRot));
+		playermodelMat4.muli(Mat4.rotateY(this.player.camYRot + yRot));
 		playermodelMat4.muli(Mat4.translate(this.player.pos.add(this.player.cameraVec).sub(this.player.vel.mul(0.5f))));
 		Model.updateInstance(this.playermodelID, playermodelMat4);
 
@@ -688,7 +618,11 @@ public class GameState extends State {
 	}
 
 	private void updateCamera() {
-		perspectiveScreen.getCamera().setFacing(player.camXRot - this.recoilVerticalRot * this.recoilScale * this.recoilScreenScale, player.camYRot - this.recoilHorizontalRot * this.recoilScale * this.recoilScreenScale);
+		float[] offset = this.weapon.getCameraRecoilOffset();
+		float xRot = offset[0];
+		float yRot = offset[1];
+		
+		perspectiveScreen.getCamera().setFacing(player.camXRot + xRot, player.camYRot + yRot);
 		perspectiveScreen.getCamera().setPos(player.pos.add(Player.cameraVec).sub(perspectiveScreen.getCamera().getFacing().mul(0f))); //last part is for third person
 		perspectiveScreen.getCamera().setUp(new Vec3(0, 1, 0));
 	}
@@ -744,7 +678,7 @@ public class GameState extends State {
 	public void keyPressed(int key) {
 		switch (key) {
 		case GLFW_KEY_R:
-			this.startReloading();
+			this.weapon.startReloading();
 			break;
 
 		case GLFW_KEY_ESCAPE:
