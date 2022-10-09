@@ -8,8 +8,8 @@ import graphics.Shader;
 import graphics.Texture;
 import input.Input;
 import main.Main;
-import model.ScreenQuad;
 import player.Player;
+import screen.ScreenQuad;
 import util.Vec3;
 
 public class StateManager {
@@ -53,6 +53,9 @@ public class StateManager {
 		}
 		this.loadState.update();
 		if (this.loadState.isFinishedLoading() && this.activeState != this.loadState.getNextState()) {
+			if (this.activeState != null) {
+				this.activeState.kill();
+			}
 			this.activeState = this.loadState.getNextState();
 		}
 	}

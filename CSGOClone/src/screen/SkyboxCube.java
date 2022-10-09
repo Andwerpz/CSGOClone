@@ -1,4 +1,4 @@
-package model;
+package screen;
 
 import static org.lwjgl.opengl.GL11.*;
 

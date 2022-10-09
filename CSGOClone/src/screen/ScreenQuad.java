@@ -1,4 +1,4 @@
-package model;
+package screen;
 
 import static org.lwjgl.opengl.GL11.*;
 
@@ -10,6 +10,7 @@ import graphics.VertexArray;
 import main.Main;
 import scene.Scene;
 import util.Mat4;
+import util.Vec3;
 
 public class ScreenQuad {
 
@@ -33,9 +34,22 @@ public class ScreenQuad {
 		this.mesh.updateInstances(mat4Map, materialMap, Scene.FRAMEBUFFER_SCENE);
 	}
 
-	// used in main to render framebuffers
-	public void render() {
+	public void render(int xOffset, int yOffset, int width, int height) {
+		Mat4 modelMat4 = Mat4.scale((float) width / Main.windowWidth, (float) height / Main.windowHeight, 1);
+		modelMat4.muli(Mat4.translate(new Vec3((float) (xOffset - Main.windowWidth + width) / Main.windowWidth, (float) (yOffset - Main.windowHeight + height) / Main.windowHeight, 0)));
+
+		HashMap<Long, Mat4> mat4Map = new HashMap<>();
+		mat4Map.put((long) 0, modelMat4);
+		HashMap<Long, Material> materialMap = new HashMap<>();
+		materialMap.put((long) 0, Material.defaultMaterial());
+
+		this.mesh.updateInstances(mat4Map, materialMap, Scene.FRAMEBUFFER_SCENE);
+
 		this.mesh.render(Scene.FRAMEBUFFER_SCENE);
+	}
+
+	public void render() {
+		this.render(0, 0, Main.windowWidth, Main.windowHeight);
 	}
 
 }

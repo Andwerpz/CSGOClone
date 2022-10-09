@@ -20,7 +20,7 @@ import static org.lwjgl.opengl.GL13.*;
 public class Texture {
 
 	// if this is false, bind() and unbind() will not work.
-	// used for rendering depth maps with the same draw method as the geometry map
+	// used when you don't want models autobinding their own textures. 
 	public static boolean bindingEnabled = true;
 
 	private int width, height;
@@ -201,5 +201,9 @@ public class Texture {
 			return;
 		glActiveTexture(glTextureLocation);
 		glBindTexture(GL_TEXTURE_2D, 0);
+	}
+
+	public void kill() {
+		glDeleteTextures(BufferUtils.createIntBuffer(new int[] { this.textureID }));
 	}
 }

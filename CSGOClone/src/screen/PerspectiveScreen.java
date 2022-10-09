@@ -14,7 +14,6 @@ import graphics.Shader;
 import graphics.Texture;
 import main.Main;
 import model.Model;
-import model.SkyboxCube;
 import player.Camera;
 import scene.Light;
 import scene.Scene;
@@ -62,7 +61,15 @@ public class PerspectiveScreen extends Screen {
 	private float playermodelFOV;
 
 	public PerspectiveScreen() {
-		super();
+
+	}
+
+	@Override
+	protected void _kill() {
+		this.geometryBuffer.kill();
+		this.lightingBuffer.kill();
+		this.shadowBuffer.kill();
+		this.skyboxBuffer.kill();
 	}
 
 	@Override

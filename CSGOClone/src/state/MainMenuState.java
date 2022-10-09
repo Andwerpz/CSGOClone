@@ -34,8 +34,8 @@ public class MainMenuState extends State {
 	private static final int STATIC_UI_SCENE = 1; // for unchanging parts of the ui like the logo
 	private static final int DYNAMIC_UI_SCENE = 2; // inputs and stuff
 
-	private static PerspectiveScreen perspectiveScreen; // 3D background
-	private static UIScreen uiScreen; // Menu UI
+	private PerspectiveScreen perspectiveScreen; // 3D background
+	private UIScreen uiScreen; // Menu UI
 
 	private long startTime;
 
@@ -47,15 +47,11 @@ public class MainMenuState extends State {
 
 	@Override
 	public void load() {
-		if (perspectiveScreen == null) {
-			perspectiveScreen = new PerspectiveScreen();
-			perspectiveScreen.setCamera(new Camera((float) Math.toRadians(70f), Main.windowWidth, Main.windowHeight, Main.NEAR, Main.FAR));
-		}
-		perspectiveScreen.getCamera().setPos(new Vec3(18.417412f, 1.7f, -29.812654f));
+		this.perspectiveScreen = new PerspectiveScreen();
+		this.perspectiveScreen.setCamera(new Camera((float) Math.toRadians(70f), Main.windowWidth, Main.windowHeight, Main.NEAR, Main.FAR));
+		this.perspectiveScreen.getCamera().setPos(new Vec3(18.417412f, 1.7f, -29.812654f));
 
-		if (uiScreen == null) {
-			uiScreen = new UIScreen();
-		}
+		this.uiScreen = new UIScreen();
 
 		Main.unlockCursor();
 
@@ -68,6 +64,12 @@ public class MainMenuState extends State {
 		Scene.skyboxes.put(BACKGROUND_SCENE, AssetManager.getSkybox("stars_skybox"));
 
 		this.drawMainMenu();
+	}
+
+	@Override
+	public void kill() {
+		this.perspectiveScreen.kill();
+		this.uiScreen.kill();
 	}
 
 	private void drawMainMenu() {

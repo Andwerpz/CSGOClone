@@ -69,8 +69,9 @@ public class GameState extends State {
 
 	private boolean hosting;
 
-	private static PerspectiveScreen perspectiveScreen;
-	private static UIScreen uiScreen;
+	private PerspectiveScreen perspectiveScreen;
+	private UIScreen uiScreen;
+	private PerspectiveScreen weaponPreviewScreen;
 
 	private Player player;
 
@@ -99,7 +100,7 @@ public class GameState extends State {
 	private Text healthText;
 	private int health = 100;
 	private boolean isDead = false;
-	
+
 	private Text reserveAmmoText, magazineAmmoText;
 
 	private long playermodelID;
@@ -109,7 +110,7 @@ public class GameState extends State {
 	private long serverMessageActiveMillis = 10000;
 	private int serverMessagesVerticalGap = 5;
 	private int serverMessagesHorizontalGap = 20;
-	
+
 	private Weapon weapon;
 
 	public GameState(StateManager sm, String ip, int port, boolean hosting) {
@@ -124,14 +125,20 @@ public class GameState extends State {
 	}
 
 	@Override
-	public void load() {
-		if (perspectiveScreen == null) {
-			perspectiveScreen = new PerspectiveScreen();
-		}
+	public void kill() {
+		this.perspectiveScreen.kill();
+		this.uiScreen.kill();
+		this.weaponPreviewScreen.kill();
 
-		if (uiScreen == null) {
-			uiScreen = new UIScreen();
-		}
+		this.disconnect();
+		this.stopHosting();
+	}
+
+	@Override
+	public void load() {
+		this.perspectiveScreen = new PerspectiveScreen();
+		this.uiScreen = new UIScreen();
+		this.weaponPreviewScreen = new PerspectiveScreen();
 
 		this.bulletHoleDecal = new Decal();
 		this.bulletHoleDecal.setTextureMaterial(new TextureMaterial(AssetManager.getTexture("bullet_hole_texture")));
@@ -157,7 +164,7 @@ public class GameState extends State {
 		// -- PLAYERMODEL SCENE --
 		this.clearScene(PLAYERMODEL_SCENE);
 		Light.addLight(PLAYERMODEL_SCENE, new DirLight(new Vec3(0.3f, -1f, -0.5f), new Vec3(0.8f), 0.3f));
-		this.weapon = new AWP();
+		this.weapon = new M4A4();
 		this.playermodelID = Model.addInstance(AssetManager.getModel(this.weapon.getModelName()), Mat4.identity(), PLAYERMODEL_SCENE);
 
 		// -- DECAL SCENE --
@@ -278,7 +285,7 @@ public class GameState extends State {
 		if (this.canShoot()) {
 			Vec3 ray_dir = this.weapon.shoot(this.player);
 			Vec3 ray_origin = perspectiveScreen.getCamera().getPos();
-			
+
 			this.client.addBulletRay(ray_origin, ray_dir);
 			this.bulletRays.add(new Pair<Integer, Vec3[]>(-1, new Vec3[] { ray_origin, ray_dir }));
 			this.computeBulletDamage(ray_origin, ray_dir);
@@ -424,7 +431,7 @@ public class GameState extends State {
 		}
 
 		// -- SHOOTING --
-		if(this.leftMouse) {
+		if (this.leftMouse) {
 			this.shoot();
 		}
 		this.weapon.update(this.leftMouse);
@@ -621,7 +628,7 @@ public class GameState extends State {
 		float[] offset = this.weapon.getCameraRecoilOffset();
 		float xRot = offset[0];
 		float yRot = offset[1];
-		
+
 		perspectiveScreen.getCamera().setFacing(player.camXRot + xRot, player.camYRot + yRot);
 		perspectiveScreen.getCamera().setPos(player.pos.add(Player.cameraVec).sub(perspectiveScreen.getCamera().getFacing().mul(0f))); //last part is for third person
 		perspectiveScreen.getCamera().setUp(new Vec3(0, 1, 0));
