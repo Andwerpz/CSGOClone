@@ -166,7 +166,7 @@ public class GameState extends State {
 		// -- PLAYERMODEL SCENE --
 		this.clearScene(PLAYERMODEL_SCENE);
 		Light.addLight(PLAYERMODEL_SCENE, new DirLight(new Vec3(0.3f, -1f, -0.5f), new Vec3(0.8f), 0.3f));
-		this.weapon = new Deagle();
+		this.weapon = new AK47();
 		this.playermodelID = Model.addInstance(AssetManager.getModel(this.weapon.getModelName()), Mat4.identity(), PLAYERMODEL_SCENE);
 
 		// -- DECAL SCENE --
