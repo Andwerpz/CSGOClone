@@ -307,6 +307,9 @@ public class Model {
 		case "jpg":
 			return GraphicsTools.verticalFlip(FileUtils.loadImage(path));
 
+		case "jpeg":
+			return GraphicsTools.verticalFlip(FileUtils.loadImage(path));
+
 		case "tga":
 			return TargaReader.getImage(SystemUtils.getWorkingDirectory() + "\\res" + path);
 		}

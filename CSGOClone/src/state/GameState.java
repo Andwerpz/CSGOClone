@@ -47,7 +47,9 @@ import util.Vec3;
 import util.Vec4;
 import weapon.AK47;
 import weapon.AWP;
+import weapon.Deagle;
 import weapon.M4A4;
+import weapon.Usps;
 import weapon.Weapon;
 
 public class GameState extends State {
@@ -164,7 +166,7 @@ public class GameState extends State {
 		// -- PLAYERMODEL SCENE --
 		this.clearScene(PLAYERMODEL_SCENE);
 		Light.addLight(PLAYERMODEL_SCENE, new DirLight(new Vec3(0.3f, -1f, -0.5f), new Vec3(0.8f), 0.3f));
-		this.weapon = new M4A4();
+		this.weapon = new Deagle();
 		this.playermodelID = Model.addInstance(AssetManager.getModel(this.weapon.getModelName()), Mat4.identity(), PLAYERMODEL_SCENE);
 
 		// -- DECAL SCENE --
