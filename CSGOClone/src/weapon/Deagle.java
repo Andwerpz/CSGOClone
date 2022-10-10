@@ -12,7 +12,8 @@ public class Deagle extends Weapon {
 		this.gunXRotRecoilScale = 1f;
 
 		this.gunYOffsetRecoilScale = 0.4f;
-
+		
+		this.description = "As expensive as it is powerful, the Desert Eagle is an iconic pistol that is difficult to master but surprisingly accurate at long range.";
 	}
 
 	@Override

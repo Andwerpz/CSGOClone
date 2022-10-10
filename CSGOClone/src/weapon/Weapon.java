@@ -50,6 +50,11 @@ public abstract class Weapon {
 
 	private boolean infiniteReserveAmmo = false;
 	private boolean infiniteMagazineAmmo = false;
+	
+	protected String description;
+	
+	protected int cost;
+	protected int killReward;
 
 	public Weapon(int magazineAmmoSize, int reserveAmmoSize, long fireDelayMillis, float recoilVerticalImpulse, float movementInaccuracyScale, float weaponInaccuracy, int weaponDamage, float weaponDamageFalloffDist, float weaponDamageFalloffPercent, long reloadTimeMillis) {
 		this.magazineAmmoSize = magazineAmmoSize;
@@ -152,6 +157,10 @@ public abstract class Weapon {
 
 	public int getMagazineAmmo() {
 		return this.magazineAmmo;
+	}
+	
+	public String getDescription() {
+		return this.description;
 	}
 
 	public void resetAmmo() {

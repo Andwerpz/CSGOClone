@@ -12,6 +12,8 @@ public class Usps extends Weapon {
 		this.gunXRotRecoilScale = 1f;
 
 		this.gunYOffsetRecoilScale = 0.4f;
+		
+		this.description = "A fan favorite from Counter-Strike: Source, the Silenced USP Pistol has a detachable silencer that gives shots less recoil while suppressing attention-getting noise.";
 	}
 
 	@Override

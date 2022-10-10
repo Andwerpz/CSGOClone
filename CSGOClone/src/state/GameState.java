@@ -7,6 +7,7 @@ import static org.lwjgl.opengl.GL14.*;
 import static org.lwjgl.opengl.GL13.*;
 import static org.lwjgl.opengl.GL30.*;
 
+import java.awt.Color;
 import java.awt.Font;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -93,6 +94,7 @@ public class GameState extends State {
 	private String weaponPreviewModelName;
 	private long weaponPreviewModelID;
 	private float weaponPreviewYRotDegrees = 90f;
+	private Text weaponPreviewDescription;
 
 	private Player player;
 
@@ -182,7 +184,7 @@ public class GameState extends State {
 		this.clearScene(WORLD_SCENE);
 		this.mapID = Model.addInstance(AssetManager.getModel("dust2"), Mat4.rotateX((float) Math.toRadians(90)).mul(Mat4.scale((float) 0.05)), WORLD_SCENE);
 		Model.activateCollisionMesh(this.mapID);
-		Light.addLight(WORLD_SCENE, new DirLight(new Vec3(0.3f, -1f, -0.5f), new Vec3(1f), 0.3f));
+		Light.addLight(WORLD_SCENE, new DirLight(new Vec3(0.3f, -1f, -0.5f), new Vec3(0.8f), 0.3f));
 		Scene.skyboxes.put(WORLD_SCENE, AssetManager.getSkybox("lake_skybox"));
 		player = new Player(new Vec3(0), WORLD_SCENE);
 
@@ -198,12 +200,16 @@ public class GameState extends State {
 
 		// -- UI SCENE --
 		this.clearScene(UI_SCENE);
-
-		long crosshairRect1ID = FilledRectangle.addRectangle(Main.windowWidth / 2 - 1, Main.windowHeight / 2 - 6, 2, 12, UI_SCENE);
-		long crosshairRect2ID = FilledRectangle.addRectangle(Main.windowWidth / 2 - 6, Main.windowHeight / 2 - 1, 12, 2, UI_SCENE);
+		UIFilledRectangle crosshairRect1 = new UIFilledRectangle(0, 0, 0, 12, 2, UI_SCENE);
+		UIFilledRectangle crosshairRect2 = new UIFilledRectangle(0, 0, 0, 2, 12, UI_SCENE);
+		crosshairRect1.setFrameAlignmentStyle(UIElement.FROM_CENTER_LEFT, UIElement.FROM_CENTER_BOTTOM);
+		crosshairRect2.setFrameAlignmentStyle(UIElement.FROM_CENTER_LEFT, UIElement.FROM_CENTER_BOTTOM);
+		crosshairRect1.setContentAlignmentStyle(UIElement.ALIGN_CENTER, UIElement.ALIGN_CENTER);
+		crosshairRect2.setContentAlignmentStyle(UIElement.ALIGN_CENTER, UIElement.ALIGN_CENTER);
+		
 		Material crosshairMaterial = new Material(new Vec4(0, 1, 0, 0.5f));
-		Model.updateInstance(crosshairRect1ID, crosshairMaterial);
-		Model.updateInstance(crosshairRect2ID, crosshairMaterial);
+		crosshairRect1.setMaterial(crosshairMaterial);
+		crosshairRect2.setMaterial(crosshairMaterial);
 
 		this.healthText = new Text(20, 20, this.health + "", FontUtils.segoe_ui.deriveFont(Font.BOLD, 36), new Material(new Vec4(1)), UI_SCENE);
 		this.healthText.setFrameAlignmentStyle(UIElement.FROM_LEFT, UIElement.FROM_BOTTOM);
@@ -232,13 +238,15 @@ public class GameState extends State {
 		this.weaponPreviewBuffer.setDrawBuffers(new int[] { GL_COLOR_ATTACHMENT0 });
 		this.weaponPreviewBuffer.isComplete();
 
-		//this.weaponPreviewScreen.setCamera(new Camera((float) Math.toRadians(1f), Main.windowWidth, Main.windowHeight, Main.NEAR, Main.FAR));
 		this.weaponPreviewScreen.setWorldCameraFOV(15f);
 
 		TextureMaterial weaponPreviewTexture = new TextureMaterial(weaponPreviewColorMap);
 		this.weaponPreviewRectangle = new FilledRectangle();
 		this.weaponPreviewRectangle.setTextureMaterial(weaponPreviewTexture);
-		Model.addInstance(this.weaponPreviewRectangle, Mat4.scale(Main.windowWidth / 2 - 100, Main.windowHeight / 2 - 100, 1).muli(Mat4.translate(new Vec3(Main.windowWidth / 2, Main.windowHeight / 2, 0))), BUY_SCENE_DYNAMIC);
+		
+		UIFilledRectangle weaponPreviewUIRectangle = new UIFilledRectangle(0, 0, 0, 640, 360, weaponPreviewRectangle, BUY_SCENE_DYNAMIC);
+		weaponPreviewUIRectangle.setFrameAlignmentStyle(UIElement.FROM_CENTER_RIGHT, UIElement.FROM_CENTER_TOP);
+		weaponPreviewUIRectangle.setContentAlignmentStyle(UIElement.ALIGN_LEFT, UIElement.ALIGN_BOTTOM);
 
 		this.weaponPreviewModelName = "";
 		Light.addLight(WEAPON_PREVIEW_SCENE, new DirLight(new Vec3(0.3f, -1f, -0.5f), new Vec3(1f), 0.3f));
@@ -326,24 +334,29 @@ public class GameState extends State {
 		// -- DYNAMIC --
 		this.clearScene(BUY_SCENE_DYNAMIC);
 		Button buyAK47Button = new Button(10, 10, 200, 30, "btn_buy_ak47", "AK47", FontUtils.CSGOFont, 32, BUY_SCENE_DYNAMIC);
-		buyAK47Button.setFrameAlignmentStyle(UIElement.FROM_LEFT, UIElement.FROM_TOP);
-		buyAK47Button.setContentAlignmentStyle(UIElement.ALIGN_LEFT, UIElement.ALIGN_TOP);
+		buyAK47Button.setFrameAlignmentStyle(UIElement.FROM_CENTER_LEFT, UIElement.FROM_CENTER_TOP);
+		buyAK47Button.setContentAlignmentStyle(UIElement.ALIGN_RIGHT, UIElement.ALIGN_BOTTOM);
 
 		Button buyM4A4Button = new Button(10, 50, 200, 30, "btn_buy_m4a4", "M4A4", FontUtils.CSGOFont, 32, BUY_SCENE_DYNAMIC);
-		buyM4A4Button.setFrameAlignmentStyle(UIElement.FROM_LEFT, UIElement.FROM_TOP);
-		buyM4A4Button.setContentAlignmentStyle(UIElement.ALIGN_LEFT, UIElement.ALIGN_TOP);
+		buyM4A4Button.setFrameAlignmentStyle(UIElement.FROM_CENTER_LEFT, UIElement.FROM_CENTER_TOP);
+		buyM4A4Button.setContentAlignmentStyle(UIElement.ALIGN_RIGHT, UIElement.ALIGN_BOTTOM);
 
 		Button buyUspsButton = new Button(10, 90, 200, 30, "btn_buy_usps", "USPS", FontUtils.CSGOFont, 32, BUY_SCENE_DYNAMIC);
-		buyUspsButton.setFrameAlignmentStyle(UIElement.FROM_LEFT, UIElement.FROM_TOP);
-		buyUspsButton.setContentAlignmentStyle(UIElement.ALIGN_LEFT, UIElement.ALIGN_TOP);
+		buyUspsButton.setFrameAlignmentStyle(UIElement.FROM_CENTER_LEFT, UIElement.FROM_CENTER_TOP);
+		buyUspsButton.setContentAlignmentStyle(UIElement.ALIGN_RIGHT, UIElement.ALIGN_BOTTOM);
 
 		Button buyAWPButton = new Button(10, 130, 200, 30, "btn_buy_awp", "AWP", FontUtils.CSGOFont, 32, BUY_SCENE_DYNAMIC);
-		buyAWPButton.setFrameAlignmentStyle(UIElement.FROM_LEFT, UIElement.FROM_TOP);
-		buyAWPButton.setContentAlignmentStyle(UIElement.ALIGN_LEFT, UIElement.ALIGN_TOP);
+		buyAWPButton.setFrameAlignmentStyle(UIElement.FROM_CENTER_LEFT, UIElement.FROM_CENTER_TOP);
+		buyAWPButton.setContentAlignmentStyle(UIElement.ALIGN_RIGHT, UIElement.ALIGN_BOTTOM);
 
-		Button buyDeagleButton = new Button(10, 170, 200, 30, "btn_buy_deagle", "Desert Eagle", FontUtils.CSGOFont, 32, BUY_SCENE_DYNAMIC);
-		buyDeagleButton.setFrameAlignmentStyle(UIElement.FROM_LEFT, UIElement.FROM_TOP);
-		buyDeagleButton.setContentAlignmentStyle(UIElement.ALIGN_LEFT, UIElement.ALIGN_TOP);
+		Button buyDeagleButton = new Button(10, 170, 200, 30, "btn_buy_deagle", "Deagle", FontUtils.CSGOFont, 32, BUY_SCENE_DYNAMIC);
+		buyDeagleButton.setFrameAlignmentStyle(UIElement.FROM_CENTER_LEFT, UIElement.FROM_CENTER_TOP);
+		buyDeagleButton.setContentAlignmentStyle(UIElement.ALIGN_RIGHT, UIElement.ALIGN_BOTTOM);
+		
+		this.weaponPreviewDescription = new Text(10, 10, 0, 640 - 20, " ", FontUtils.segoe_ui, 20, Color.WHITE, BUY_SCENE_DYNAMIC);
+		this.weaponPreviewDescription.setFrameAlignmentStyle(UIElement.FROM_CENTER_RIGHT, UIElement.FROM_CENTER_BOTTOM);
+		this.weaponPreviewDescription.setContentAlignmentStyle(UIElement.ALIGN_LEFT, UIElement.ALIGN_TOP);
+		this.weaponPreviewDescription.setTextWrapping(true);
 	}
 
 	private void startHosting() {
@@ -486,34 +499,36 @@ public class GameState extends State {
 		Input.inputsHovered(uiScreen.getEntityIDAtMouse());
 
 		// -- WEAPON PREVIEW --
-		String nextWeaponPreviewName = "";
+		Weapon nextWeapon = null;
 		switch (Input.getHovered()) {
 		case "btn_buy_ak47":
-			nextWeaponPreviewName = new AK47().getModelName();
+			nextWeapon = new AK47();
 			break;
 
 		case "btn_buy_m4a4":
-			nextWeaponPreviewName = new M4A4().getModelName();
+			nextWeapon = new M4A4();
 			break;
 
 		case "btn_buy_usps":
-			nextWeaponPreviewName = new Usps().getModelName();
+			nextWeapon = new Usps();
 			break;
 
 		case "btn_buy_awp":
-			nextWeaponPreviewName = new AWP().getModelName();
+			nextWeapon = new AWP();
 			break;
 
 		case "btn_buy_deagle":
-			nextWeaponPreviewName = new Deagle().getModelName();
+			nextWeapon = new Deagle();
 			break;
 		}
-		if (!nextWeaponPreviewName.equals(this.weaponPreviewModelName) && nextWeaponPreviewName.length() != 0) {
-			this.weaponPreviewModelName = nextWeaponPreviewName;
+		if (nextWeapon != null && !nextWeapon.getModelName().equals(this.weaponPreviewModelName)) {
+			this.weaponPreviewModelName = nextWeapon.getModelName();
 			if (this.weaponPreviewModelID != 0) {
 				Model.removeInstance(this.weaponPreviewModelID);
 			}
+			
 			this.weaponPreviewModelID = Model.addInstance(AssetManager.getModel(this.weaponPreviewModelName), Mat4.identity(), WEAPON_PREVIEW_SCENE);
+			this.weaponPreviewDescription.setText(nextWeapon.getDescription());
 		}
 
 		this.weaponPreviewYRotDegrees += (360f / 10000f) * Main.main.deltaMillis;
