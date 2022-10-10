@@ -38,6 +38,19 @@ public abstract class Weapon {
 	private long reloadStartMillis;
 	private long reloadTimeMillis;
 
+	protected float gunXOffset = 0.2f;
+	protected float gunYOffset = -0.25f;
+	protected float gunZOffset = -0.55f;
+
+	protected float gunYOffsetRecoilScale = 0.4f;
+	protected float gunZOffsetRecoilScale = 1f;
+
+	protected float gunXRotRecoilScale = 0.7f;
+	protected float gunYRotRecoilScale = 0.7f;
+
+	private boolean infiniteReserveAmmo = false;
+	private boolean infiniteMagazineAmmo = false;
+
 	public Weapon(int magazineAmmoSize, int reserveAmmoSize, long fireDelayMillis, float recoilVerticalImpulse, float movementInaccuracyScale, float weaponInaccuracy, int weaponDamage, float weaponDamageFalloffDist, float weaponDamageFalloffPercent, long reloadTimeMillis) {
 		this.magazineAmmoSize = magazineAmmoSize;
 		this.reserveAmmoSize = reserveAmmoSize;
@@ -61,7 +74,7 @@ public abstract class Weapon {
 	}
 
 	private void reload() {
-		if (System.currentTimeMillis() - this.reloadStartMillis >= this.reloadTimeMillis) {
+		if (System.currentTimeMillis() - this.reloadStartMillis >= this.reloadTimeMillis && this.reloading) {
 			this.reserveAmmo += this.magazineAmmo;
 			int transferAmmo = this.magazineAmmoSize + Math.min(this.reserveAmmo - this.magazineAmmoSize, 0);
 			this.reserveAmmo = Math.max(0, this.reserveAmmo - this.magazineAmmoSize);
@@ -108,15 +121,19 @@ public abstract class Weapon {
 		return null;
 	}
 
-	//xRot, yRot, yOffset, zOffset
-	public float[] getGunRecoilOffset() {
-		float xRot = -this.recoilVerticalRot * this.recoilScale * 0.7f;
-		float yRot = -this.recoilHorizontalRot * this.recoilScale * 0.7f;
+	public float[] getGunRot() {
+		float xRot = -this.recoilVerticalRot * this.recoilScale * this.gunXRotRecoilScale;
+		float yRot = -this.recoilHorizontalRot * this.recoilScale * this.gunYRotRecoilScale;
 
-		float yOffset = this.recoilVerticalRot * this.recoilScale * 0.1f;
-		float zOffset = this.recoilVerticalRot * this.recoilScale * 1f;
+		return new float[] { xRot, yRot };
+	}
 
-		return new float[] { xRot, yRot, yOffset, zOffset };
+	public Vec3 getGunOffset() {
+		float xOffset = this.gunXOffset;
+		float yOffset = this.gunYOffset + this.recoilVerticalRot * this.recoilScale * this.gunYOffsetRecoilScale;
+		float zOffset = this.gunZOffset + this.recoilVerticalRot * this.recoilScale * this.gunZOffsetRecoilScale;
+
+		return new Vec3(xOffset, yOffset, zOffset);
 	}
 
 	public float[] getCameraRecoilOffset() {
@@ -142,7 +159,28 @@ public abstract class Weapon {
 		this.magazineAmmo = this.magazineAmmoSize;
 	}
 
+	public void makeInactive() {
+		this.reloading = false;
+		this.fireDelayMillis = 0;
+	}
+
+	public void setInfiniteReserveAmmo(boolean b) {
+		this.infiniteReserveAmmo = b;
+	}
+
+	public void setInfiniteMagazineAmmo(boolean b) {
+		this.infiniteMagazineAmmo = b;
+	}
+
 	public void update(boolean leftMouse) {
+		if (this.infiniteReserveAmmo) {
+			this.reserveAmmo = this.reserveAmmoSize;
+		}
+
+		if (this.infiniteMagazineAmmo) {
+			this.magazineAmmo = this.magazineAmmoSize;
+		}
+
 		if (this.reloading) {
 			this.reload();
 		}

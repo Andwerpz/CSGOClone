@@ -43,6 +43,14 @@ public class Framebuffer {
 		fbo = glGenFramebuffers();
 	}
 
+	public int getWidth() {
+		return this.width;
+	}
+
+	public int getHeight() {
+		return this.height;
+	}
+
 	public int addRenderBuffer() {
 		this.bind();
 		renderBuffer = glGenRenderbuffers();

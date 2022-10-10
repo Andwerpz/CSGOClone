@@ -131,13 +131,21 @@ public class PerspectiveScreen extends Screen {
 		this.playermodelFOV = 50f;
 	}
 
-	public void setCameraFOV(float degrees) {
+	private void setCameraFOV(float degrees) {
 		float cameraFOV = degrees;
 		Vec3 cameraPos = this.camera.getPos();
 		Vec3 cameraFacing = this.camera.getFacing();
 		this.camera = new Camera((float) Math.toRadians(cameraFOV), Main.windowWidth, Main.windowHeight, Main.NEAR, Main.FAR);
 		this.camera.setPos(cameraPos);
 		this.camera.setFacing(cameraFacing);
+	}
+
+	public void setWorldCameraFOV(float degrees) {
+		this.worldFOV = degrees;
+	}
+
+	public void setPlayermodelCameraFOV(float degrees) {
+		this.playermodelFOV = degrees;
 	}
 
 	public void setWorldScene(int scene) {

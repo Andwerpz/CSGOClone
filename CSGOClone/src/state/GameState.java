@@ -1,6 +1,11 @@
 package state;
 
 import static org.lwjgl.glfw.GLFW.*;
+import static org.lwjgl.opengl.GL11.*;
+import static org.lwjgl.opengl.GL12.*;
+import static org.lwjgl.opengl.GL14.*;
+import static org.lwjgl.opengl.GL13.*;
+import static org.lwjgl.opengl.GL30.*;
 
 import java.awt.Font;
 import java.util.ArrayDeque;
@@ -63,6 +68,11 @@ public class GameState extends State {
 	private static final int PAUSE_SCENE_STATIC = 4;
 	private static final int PAUSE_SCENE_DYNAMIC = 5;
 
+	private static final int BUY_SCENE_STATIC = 6;
+	private static final int BUY_SCENE_DYNAMIC = 7;
+
+	private static final int WEAPON_PREVIEW_SCENE = 8;
+
 	private static final int DECAL_LIMIT = 1000;
 	private Queue<Long> decalIDs;
 
@@ -73,7 +83,16 @@ public class GameState extends State {
 
 	private PerspectiveScreen perspectiveScreen;
 	private UIScreen uiScreen;
+
+	private boolean buyMenuActive = false;
+
 	private PerspectiveScreen weaponPreviewScreen;
+	private Framebuffer weaponPreviewBuffer;
+	private Texture weaponPreviewColorMap;
+	private FilledRectangle weaponPreviewRectangle;
+	private String weaponPreviewModelName;
+	private long weaponPreviewModelID;
+	private float weaponPreviewYRotDegrees = 90f;
 
 	private Player player;
 
@@ -87,6 +106,7 @@ public class GameState extends State {
 	private Model bloodDecal, bulletHoleDecal;
 	private ArrayList<Pair<Integer, Vec3[]>> bulletRays;
 
+	private boolean playerControlsDisabled = false;
 	private boolean leftMouse = false;
 	private boolean rightMouse = false;
 
@@ -132,6 +152,9 @@ public class GameState extends State {
 		this.uiScreen.kill();
 		this.weaponPreviewScreen.kill();
 
+		this.weaponPreviewBuffer.kill();
+		this.weaponPreviewRectangle.kill();
+
 		this.disconnect();
 		this.stopHosting();
 	}
@@ -166,7 +189,7 @@ public class GameState extends State {
 		// -- PLAYERMODEL SCENE --
 		this.clearScene(PLAYERMODEL_SCENE);
 		Light.addLight(PLAYERMODEL_SCENE, new DirLight(new Vec3(0.3f, -1f, -0.5f), new Vec3(0.8f), 0.3f));
-		this.weapon = new AK47();
+		this.weapon = new AWP();
 		this.playermodelID = Model.addInstance(AssetManager.getModel(this.weapon.getModelName()), Mat4.identity(), PLAYERMODEL_SCENE);
 
 		// -- DECAL SCENE --
@@ -195,8 +218,30 @@ public class GameState extends State {
 		this.magazineAmmoText.setContentAlignmentStyle(UIElement.ALIGN_RIGHT, UIElement.ALIGN_BOTTOM);
 
 		// -- PAUSE SCENE --
-		this.clearScene(PAUSE_SCENE_STATIC);
-		this.clearScene(PAUSE_SCENE_DYNAMIC);
+		this.drawPauseMenu();
+
+		// -- BUY MENU --
+		this.drawBuyMenu();
+
+		// -- WEAPON PREVIEW --
+		this.clearScene(WEAPON_PREVIEW_SCENE);
+
+		this.weaponPreviewBuffer = new Framebuffer(Main.windowWidth, Main.windowHeight);
+		this.weaponPreviewColorMap = new Texture(GL_RGBA, Main.windowWidth, Main.windowHeight, GL_RGBA, GL_FLOAT);
+		this.weaponPreviewBuffer.bindTextureToBuffer(GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, this.weaponPreviewColorMap.getID());
+		this.weaponPreviewBuffer.setDrawBuffers(new int[] { GL_COLOR_ATTACHMENT0 });
+		this.weaponPreviewBuffer.isComplete();
+
+		//this.weaponPreviewScreen.setCamera(new Camera((float) Math.toRadians(1f), Main.windowWidth, Main.windowHeight, Main.NEAR, Main.FAR));
+		this.weaponPreviewScreen.setWorldCameraFOV(15f);
+
+		TextureMaterial weaponPreviewTexture = new TextureMaterial(weaponPreviewColorMap);
+		this.weaponPreviewRectangle = new FilledRectangle();
+		this.weaponPreviewRectangle.setTextureMaterial(weaponPreviewTexture);
+		Model.addInstance(this.weaponPreviewRectangle, Mat4.scale(Main.windowWidth / 2 - 100, Main.windowHeight / 2 - 100, 1).muli(Mat4.translate(new Vec3(Main.windowWidth / 2, Main.windowHeight / 2, 0))), BUY_SCENE_DYNAMIC);
+
+		this.weaponPreviewModelName = "";
+		Light.addLight(WEAPON_PREVIEW_SCENE, new DirLight(new Vec3(0.3f, -1f, -0.5f), new Vec3(1f), 0.3f));
 
 		// -- NETWORKING --
 		this.client = new GameClient();
@@ -218,14 +263,11 @@ public class GameState extends State {
 			this.pauseMenuActive = false;
 			Main.lockCursor();
 			this.enablePlayerControls();
-			this.clearScene(PAUSE_SCENE_STATIC);
-			this.clearScene(PAUSE_SCENE_DYNAMIC);
 		}
 		else {
 			this.pauseMenuActive = true;
 			Main.unlockCursor();
 			this.disablePlayerControls();
-			this.drawPauseMenu();
 		}
 	}
 
@@ -260,6 +302,50 @@ public class GameState extends State {
 		respawn.setContentAlignmentStyle(UIElement.ALIGN_CENTER, UIElement.ALIGN_CENTER);
 	}
 
+	private void toggleBuyMenu() {
+		if (this.buyMenuActive) {
+			this.buyMenuActive = false;
+			Main.lockCursor();
+			this.enablePlayerControls();
+		}
+		else {
+			this.buyMenuActive = true;
+			Main.unlockCursor();
+			this.disablePlayerControls();
+		}
+	}
+
+	private void drawBuyMenu() {
+		// -- STATIC --
+		this.clearScene(BUY_SCENE_STATIC);
+		UIFilledRectangle backgroundRect = new UIFilledRectangle(0, 0, 0, 1920, 1080, BUY_SCENE_STATIC);
+		backgroundRect.setFrameAlignmentStyle(UIElement.FROM_LEFT, UIElement.FROM_BOTTOM);
+		backgroundRect.setContentAlignmentStyle(UIElement.ALIGN_LEFT, UIElement.ALIGN_BOTTOM);
+		backgroundRect.setMaterial(new Material(new Vec4(0, 0, 0, 0.5f)));
+
+		// -- DYNAMIC --
+		this.clearScene(BUY_SCENE_DYNAMIC);
+		Button buyAK47Button = new Button(10, 10, 200, 30, "btn_buy_ak47", "AK47", FontUtils.CSGOFont, 32, BUY_SCENE_DYNAMIC);
+		buyAK47Button.setFrameAlignmentStyle(UIElement.FROM_LEFT, UIElement.FROM_TOP);
+		buyAK47Button.setContentAlignmentStyle(UIElement.ALIGN_LEFT, UIElement.ALIGN_TOP);
+
+		Button buyM4A4Button = new Button(10, 50, 200, 30, "btn_buy_m4a4", "M4A4", FontUtils.CSGOFont, 32, BUY_SCENE_DYNAMIC);
+		buyM4A4Button.setFrameAlignmentStyle(UIElement.FROM_LEFT, UIElement.FROM_TOP);
+		buyM4A4Button.setContentAlignmentStyle(UIElement.ALIGN_LEFT, UIElement.ALIGN_TOP);
+
+		Button buyUspsButton = new Button(10, 90, 200, 30, "btn_buy_usps", "USPS", FontUtils.CSGOFont, 32, BUY_SCENE_DYNAMIC);
+		buyUspsButton.setFrameAlignmentStyle(UIElement.FROM_LEFT, UIElement.FROM_TOP);
+		buyUspsButton.setContentAlignmentStyle(UIElement.ALIGN_LEFT, UIElement.ALIGN_TOP);
+
+		Button buyAWPButton = new Button(10, 130, 200, 30, "btn_buy_awp", "AWP", FontUtils.CSGOFont, 32, BUY_SCENE_DYNAMIC);
+		buyAWPButton.setFrameAlignmentStyle(UIElement.FROM_LEFT, UIElement.FROM_TOP);
+		buyAWPButton.setContentAlignmentStyle(UIElement.ALIGN_LEFT, UIElement.ALIGN_TOP);
+
+		Button buyDeagleButton = new Button(10, 170, 200, 30, "btn_buy_deagle", "Desert Eagle", FontUtils.CSGOFont, 32, BUY_SCENE_DYNAMIC);
+		buyDeagleButton.setFrameAlignmentStyle(UIElement.FROM_LEFT, UIElement.FROM_TOP);
+		buyDeagleButton.setContentAlignmentStyle(UIElement.ALIGN_LEFT, UIElement.ALIGN_TOP);
+	}
+
 	private void startHosting() {
 		this.server = new GameServer(this.ip, this.port);
 	}
@@ -280,7 +366,7 @@ public class GameState extends State {
 	}
 
 	private boolean canShoot() {
-		return this.weapon.canShoot() && !this.pauseMenuActive && !this.isDead;
+		return this.weapon.canShoot() && !this.pauseMenuActive && !this.isDead && !this.playerControlsDisabled;
 	}
 
 	private void shoot() {
@@ -377,19 +463,63 @@ public class GameState extends State {
 	}
 
 	private void enablePlayerControls() {
-		if (!this.isDead && !this.pauseMenuActive) {
+		if (!this.isDead && !this.pauseMenuActive && !this.buyMenuActive) {
 			this.player.setAcceptPlayerInputs(true);
+			this.playerControlsDisabled = false;
 		}
 	}
 
 	private void disablePlayerControls() {
 		this.player.setAcceptPlayerInputs(false);
+		this.playerControlsDisabled = true;
+	}
+
+	private void switchWeapon(Weapon w) {
+		Model.removeInstance(this.playermodelID);
+		this.weapon = w;
+		this.playermodelID = Model.addInstance(AssetManager.getModel(w.getModelName()), Mat4.identity(), PLAYERMODEL_SCENE);
 	}
 
 	@Override
 	public void update() {
 		// -- MENU --
 		Input.inputsHovered(uiScreen.getEntityIDAtMouse());
+
+		// -- WEAPON PREVIEW --
+		String nextWeaponPreviewName = "";
+		switch (Input.getHovered()) {
+		case "btn_buy_ak47":
+			nextWeaponPreviewName = new AK47().getModelName();
+			break;
+
+		case "btn_buy_m4a4":
+			nextWeaponPreviewName = new M4A4().getModelName();
+			break;
+
+		case "btn_buy_usps":
+			nextWeaponPreviewName = new Usps().getModelName();
+			break;
+
+		case "btn_buy_awp":
+			nextWeaponPreviewName = new AWP().getModelName();
+			break;
+
+		case "btn_buy_deagle":
+			nextWeaponPreviewName = new Deagle().getModelName();
+			break;
+		}
+		if (!nextWeaponPreviewName.equals(this.weaponPreviewModelName) && nextWeaponPreviewName.length() != 0) {
+			this.weaponPreviewModelName = nextWeaponPreviewName;
+			if (this.weaponPreviewModelID != 0) {
+				Model.removeInstance(this.weaponPreviewModelID);
+			}
+			this.weaponPreviewModelID = Model.addInstance(AssetManager.getModel(this.weaponPreviewModelName), Mat4.identity(), WEAPON_PREVIEW_SCENE);
+		}
+
+		this.weaponPreviewYRotDegrees += (360f / 10000f) * Main.main.deltaMillis;
+		if (this.weaponPreviewModelID != 0) {
+			Model.updateInstance(this.weaponPreviewModelID, Mat4.rotateY((float) Math.toRadians(this.weaponPreviewYRotDegrees)).mul(Mat4.translate(new Vec3(0, 0, -4f))));
+		}
 
 		// -- KILLFEED --
 		ArrayList<Pair<String, String>> newKillfeed = this.client.getKillfeed();
@@ -577,20 +707,21 @@ public class GameState extends State {
 		Entity.updateEntities();
 
 		// -- PLAYERMODEL --
-		float[] offset = this.weapon.getGunRecoilOffset();
-		float xRot = offset[0];
-		float yRot = offset[1];
-		float yOffset = offset[2];
-		float zOffset = offset[3];
-		Vec3 playermodelOffset = new Vec3(0.2f, -0.25f + yOffset, -0.55f + zOffset);
+		Vec3 playermodelOffset = this.weapon.getGunOffset();
 		if (this.playermodelLeftHanded) {
 			playermodelOffset.x = -playermodelOffset.x;
 		}
 
+		float[] rot = this.weapon.getGunRot();
+		float xRot = rot[0];
+		float yRot = rot[1];
+
 		Mat4 playermodelMat4 = Mat4.scale(1f);
+		playermodelMat4.muli(Mat4.rotateX(xRot));
+		playermodelMat4.muli(Mat4.rotateY(yRot));
 		playermodelMat4.muli(Mat4.translate(playermodelOffset));
-		playermodelMat4.muli(Mat4.rotateX(this.player.camXRot + xRot));
-		playermodelMat4.muli(Mat4.rotateY(this.player.camYRot + yRot));
+		playermodelMat4.muli(Mat4.rotateX(this.player.camXRot));
+		playermodelMat4.muli(Mat4.rotateY(this.player.camYRot));
 		playermodelMat4.muli(Mat4.translate(this.player.pos.add(this.player.cameraVec).sub(this.player.vel.mul(0.5f))));
 		Model.updateInstance(this.playermodelID, playermodelMat4);
 
@@ -621,6 +752,22 @@ public class GameState extends State {
 			uiScreen.render(outputBuffer);
 
 			uiScreen.setUIScene(PAUSE_SCENE_DYNAMIC);
+			uiScreen.render(outputBuffer);
+		}
+
+		if (this.buyMenuActive) {
+			this.weaponPreviewBuffer.bind();
+			glClear(GL_COLOR_BUFFER_BIT);
+			this.weaponPreviewScreen.renderSkybox(false);
+			this.weaponPreviewScreen.renderDecals(true);
+			this.weaponPreviewScreen.renderPlayermodel(false);
+			this.weaponPreviewScreen.setWorldScene(WEAPON_PREVIEW_SCENE);
+			this.weaponPreviewScreen.render(this.weaponPreviewBuffer);
+
+			uiScreen.setUIScene(BUY_SCENE_STATIC);
+			uiScreen.render(outputBuffer);
+
+			uiScreen.setUIScene(BUY_SCENE_DYNAMIC);
 			uiScreen.render(outputBuffer);
 		}
 
@@ -680,6 +827,26 @@ public class GameState extends State {
 			this.respawn();
 			break;
 
+		case "btn_buy_ak47":
+			this.switchWeapon(new AK47());
+			break;
+
+		case "btn_buy_m4a4":
+			this.switchWeapon(new M4A4());
+			break;
+
+		case "btn_buy_usps":
+			this.switchWeapon(new Usps());
+			break;
+
+		case "btn_buy_awp":
+			this.switchWeapon(new AWP());
+			break;
+
+		case "btn_buy_deagle":
+			this.switchWeapon(new Deagle());
+			break;
+
 		}
 	}
 
@@ -691,7 +858,18 @@ public class GameState extends State {
 			break;
 
 		case GLFW_KEY_ESCAPE:
-			this.togglePauseMenu();
+			if (this.buyMenuActive) {
+				this.toggleBuyMenu();
+			}
+			else {
+				this.togglePauseMenu();
+			}
+			break;
+
+		case GLFW_KEY_B:
+			if (!this.pauseMenuActive) {
+				this.toggleBuyMenu();
+			}
 			break;
 		}
 

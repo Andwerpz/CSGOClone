@@ -3,11 +3,14 @@ package weapon;
 public class AWP extends Weapon {
 
 	public AWP() {
-		super(10, 30, 1500, 30f, 1500f, 0.5f, 120, 7f, 0.02f, 2000);
+		super(10, 30, 1500, 30f, 1500f, 0.5f, 120, 7f, 0.02f, 3500);
+
+		this.gunYOffsetRecoilScale = 0.3f;
 	}
-	
+
+	@Override
 	public String getModelName() {
 		return "awp";
 	}
-	
+
 }

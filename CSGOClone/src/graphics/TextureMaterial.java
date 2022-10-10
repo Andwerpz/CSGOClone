@@ -81,28 +81,28 @@ public class TextureMaterial {
 	}
 
 	public TextureMaterial(String diffusePath, String specularPath, String normalPath, String displacementPath) {
-		if(diffusePath == null) {
+		if (diffusePath == null) {
 			diffuse = DIFFUSE_DEFAULT;
 		}
 		else {
 			diffuse = new Texture(diffusePath, false, false);
 		}
 
-		if(specularPath == null) {
+		if (specularPath == null) {
 			specular = SPECULAR_DEFAULT;
 		}
 		else {
 			specular = new Texture(specularPath, false, false);
 		}
 
-		if(normalPath == null) {
+		if (normalPath == null) {
 			normal = NORMAL_DEFAULT;
 		}
 		else {
 			normal = new Texture(normalPath, false, false);
 		}
 
-		if(displacementPath == null) {
+		if (displacementPath == null) {
 			displacement = DISPLACEMENT_DEFAULT;
 		}
 		else {
@@ -111,28 +111,28 @@ public class TextureMaterial {
 	}
 
 	public TextureMaterial(Texture diffuse, Texture specular, Texture normal, Texture displacement) {
-		if(diffuse == null) {
+		if (diffuse == null) {
 			this.diffuse = DIFFUSE_DEFAULT;
 		}
 		else {
 			this.diffuse = diffuse;
 		}
 
-		if(specular == null) {
+		if (specular == null) {
 			this.specular = SPECULAR_DEFAULT;
 		}
 		else {
 			this.specular = specular;
 		}
 
-		if(normal == null) {
+		if (normal == null) {
 			this.normal = NORMAL_DEFAULT;
 		}
 		else {
 			this.normal = normal;
 		}
 
-		if(displacement == null) {
+		if (displacement == null) {
 			this.displacement = DISPLACEMENT_DEFAULT;
 		}
 		else {
@@ -216,5 +216,20 @@ public class TextureMaterial {
 		specular.unbind(GL_TEXTURE1);
 		normal.unbind(GL_TEXTURE2);
 		displacement.unbind(GL_TEXTURE3);
+	}
+
+	public void kill() {
+		if (this.diffuse != DIFFUSE_DEFAULT) {
+			this.diffuse.kill();
+		}
+		if (this.specular != SPECULAR_DEFAULT) {
+			this.specular.kill();
+		}
+		if (this.normal != NORMAL_DEFAULT) {
+			this.normal.kill();
+		}
+		if (this.displacement != DISPLACEMENT_DEFAULT) {
+			this.displacement.kill();
+		}
 	}
 }

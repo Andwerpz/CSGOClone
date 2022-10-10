@@ -79,8 +79,7 @@ public class Model {
 	// default per instance traditional blinn-phong Ka, Ks, Kd
 	protected ArrayList<Material> defaultMaterials;
 
-	// like material, but uses a texture2D sampler instead. Is multiplied by the
-	// instanced material to get the final result.
+	// like material, but uses a texture2D sampler instead. Is multiplied by the instanced material to get the final result.
 	protected ArrayList<TextureMaterial> textureMaterials;
 
 	// created in init(), stores the same data that meshes stores, just all in
@@ -142,6 +141,7 @@ public class Model {
 			System.err.println("Texture material index out of bounds");
 			return;
 		}
+		this.textureMaterials.get(index).kill();
 		this.textureMaterials.set(index, m);
 	}
 
@@ -589,6 +589,10 @@ public class Model {
 			modelInstanceIDs.remove(id);
 			IDtoScene.remove(id);
 			IDtoModel.remove(id);
+		}
+
+		for (TextureMaterial t : this.textureMaterials) {
+			t.kill();
 		}
 
 		models.remove(this);
