@@ -33,8 +33,8 @@ public class AssetManager {
 		paths.put("sphere", new String[] { "/sphere/", "sphere.obj" });
 		paths.put("cylinder", new String[] { "/cylinder/", "cylinder.obj" });
 
-		paths.put("blood_splatter_texture", new String[] { "decal/blood_splatter.png", GL_NEAREST + "" });
-		paths.put("bullet_hole_texture", new String[] { "decal/bullet_hole.png", GL_NEAREST + "" });
+		paths.put("blood_splatter_texture", new String[] { "decal/blood_splatter.png", GL_NEAREST_MIPMAP_NEAREST + "", GL_NEAREST + "", 1 + "" });
+		paths.put("bullet_hole_texture", new String[] { "decal/bullet_hole.png", GL_NEAREST_MIPMAP_NEAREST + "", GL_NEAREST + "", 1 + "" });
 
 		paths.put("lake_skybox", new String[] { "/skybox/lake/right.jpg", "/skybox/lake/left.jpg", "/skybox/lake/top.jpg", "/skybox/lake/bottom.jpg", "/skybox/lake/front.jpg", "/skybox/lake/back.jpg" });
 		paths.put("stars_skybox", new String[] { "/skybox/stars/right.png", "/skybox/stars/left.png", "/skybox/stars/top.png", "/skybox/stars/bottom.png", "/skybox/stars/front.png", "/skybox/stars/back.png" });
@@ -47,7 +47,7 @@ public class AssetManager {
 
 	public static void loadTexture(String name) {
 		String[] p = paths.get(name);
-		textures.put(name, new Texture(p[0], false, false, false, Integer.parseInt(p[1])));
+		textures.put(name, new Texture(p[0], 0, Integer.parseInt(p[1]), Integer.parseInt(p[2]), Integer.parseInt(p[3])));
 	}
 
 	public static void loadSkybox(String name) {

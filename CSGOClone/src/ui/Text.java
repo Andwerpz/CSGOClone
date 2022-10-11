@@ -28,9 +28,9 @@ public class Text extends UIElement {
 
 	private boolean drawBackgroundRectangle = false;
 	private UIFilledRectangle backgroundRectangle;
-	
+
 	private int textWidth, textMaxHeight, textSampleAscent, textSampleDescent;
-	private int maxTextWidth, maxTextHeight;	//cutoff boundaries for text
+	private int maxTextWidth, maxTextHeight; //cutoff boundaries for text
 
 	private Model textRectangle;
 	private TextureMaterial textTextureMaterial;
@@ -39,9 +39,9 @@ public class Text extends UIElement {
 	private int fontSize;
 
 	private int textHorizontalMargin, textVerticalMargin;
-	
+
 	private boolean textWrapping = false;
-	private int lineSpacing = 3;	//in pixels
+	private int lineSpacing = 3; //in pixels
 
 	public Text(int x, int y, String text, int fontSize, Material material, int scene) {
 		super(x, y, 0, 0, 0, scene);
@@ -75,7 +75,7 @@ public class Text extends UIElement {
 		super(x, y, z, 0, 0, scene);
 		this.init(width, text, font, material);
 	}
-	
+
 	public Text(int x, int y, int z, int width, String text, Font font, int fontSize, Color color, int scene) {
 		super(x, y, z, 0, 0, scene);
 		Font derivedFont = FontUtils.deriveSize(fontSize, font);
@@ -113,7 +113,7 @@ public class Text extends UIElement {
 		this.maxTextHeight = this.textMaxHeight;
 
 		BufferedImage img = GraphicsTools.generateTextImage(text, font, Color.WHITE, this.maxTextWidth);
-		Texture texture = new Texture(img, false, false, true);
+		Texture texture = new Texture(img, Texture.VERTICAL_FLIP_BIT);
 		this.textTextureMaterial = new TextureMaterial(texture);
 
 		Mat4 modelMat4 = Mat4.scale(this.maxTextWidth, this.textMaxHeight, 1).mul(Mat4.translate(new Vec3(this.x, this.y, this.z + 1)));
@@ -155,10 +155,10 @@ public class Text extends UIElement {
 		GraphicsTools.enableAntialiasing(g);
 		g.setFont(font);
 		g.setColor(Color.WHITE);
-		
+
 		String[] a = this.text.split(" ");
-		
-		if(!this.textWrapping || a.length == 0) {
+
+		if (!this.textWrapping || a.length == 0) {
 			int alignedX = 0;
 			if (this.horizontalAlignContent == ALIGN_CENTER) {
 				alignedX = 0;
@@ -169,18 +169,18 @@ public class Text extends UIElement {
 			else if (this.horizontalAlignContent == ALIGN_RIGHT) {
 				alignedX = this.maxTextWidth - this.textWidth;
 			}
-	
+
 			g.drawString(text, alignedX, this.textSampleAscent);
-	
-			return new Texture(img, false, false, true);
+
+			return new Texture(img, Texture.VERTICAL_FLIP_BIT);
 		}
-		
+
 		String currentLine = a[0];
 		int p = 1;
 		int curY = 0;
-		while(p < a.length) {
+		while (p < a.length) {
 			int addedWidth = GraphicsTools.calculateTextWidth(currentLine + " " + a[p], this.font);
-			if(addedWidth > this.maxTextWidth && currentLine.length() != 0) {
+			if (addedWidth > this.maxTextWidth && currentLine.length() != 0) {
 				int lineWidth = GraphicsTools.calculateTextWidth(currentLine, font);
 				int alignedX = 0;
 				if (this.horizontalAlignContent == ALIGN_CENTER) {
@@ -192,16 +192,16 @@ public class Text extends UIElement {
 				else if (this.horizontalAlignContent == ALIGN_RIGHT) {
 					alignedX = this.maxTextWidth - lineWidth;
 				}
-				
+
 				g.drawString(currentLine, alignedX, curY + this.textSampleAscent);
-				
+
 				curY += this.textMaxHeight + this.lineSpacing;
 				currentLine = a[p];
-				p ++;
+				p++;
 			}
 			else {
 				currentLine += " " + a[p];
-				p ++;
+				p++;
 			}
 		}
 		int lineWidth = GraphicsTools.calculateTextWidth(currentLine, font);
@@ -216,31 +216,31 @@ public class Text extends UIElement {
 			alignedX = this.maxTextWidth - lineWidth;
 		}
 		g.drawString(currentLine, alignedX, curY + this.textSampleAscent);
-		return new Texture(img, false, false, true);
+		return new Texture(img, Texture.VERTICAL_FLIP_BIT);
 	}
-	
+
 	private int calculateHeight() {
-		if(!this.textWrapping) {
+		if (!this.textWrapping) {
 			return this.textMaxHeight;
 		}
-		
+
 		int ans = 0;
 		String[] a = this.text.split(" ");
-		if(a.length == 0) {
+		if (a.length == 0) {
 			return this.textMaxHeight;
 		}
 		String currentLine = a[0];
 		int p = 1;
-		while(p < a.length) {
+		while (p < a.length) {
 			int addedWidth = GraphicsTools.calculateTextWidth(currentLine + " " + a[p], this.font);
-			if(addedWidth > this.maxTextWidth && currentLine.length() != 0) {
+			if (addedWidth > this.maxTextWidth && currentLine.length() != 0) {
 				ans += this.textMaxHeight + this.lineSpacing;
 				currentLine = a[p];
-				p ++;
+				p++;
 			}
 			else {
 				currentLine += " " + a[p];
-				p ++;
+				p++;
 			}
 		}
 		ans += this.textMaxHeight;
@@ -257,13 +257,13 @@ public class Text extends UIElement {
 		this.maxTextHeight = this.calculateHeight();
 		this.setMargin(this.textHorizontalMargin);
 	}
-	
+
 	public void setTextWrapping(boolean b) {
 		this.textWrapping = b;
-		
+
 		this.maxTextHeight = this.calculateHeight();
 		this.setMargin(this.textHorizontalMargin);
-		
+
 		this.align();
 	}
 

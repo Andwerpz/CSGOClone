@@ -106,7 +106,7 @@ public class MainMenuState extends State {
 		// -- STATIC UI --
 		this.clearScene(STATIC_UI_SCENE);
 		FilledRectangle csgoLogo = new FilledRectangle();
-		csgoLogo.setTextureMaterial(new TextureMaterial(new Texture("/cs_go_logo.png", false, false, true)));
+		csgoLogo.setTextureMaterial(new TextureMaterial(new Texture("/cs_go_logo.png", Texture.VERTICAL_FLIP_BIT)));
 		Mat4 logoMat4 = Mat4.scale(700, 150, 1).mul(Mat4.translate(new Vec3(120, Main.windowHeight / 2, 0)));
 		Model.addInstance(csgoLogo, logoMat4, STATIC_UI_SCENE);
 	}

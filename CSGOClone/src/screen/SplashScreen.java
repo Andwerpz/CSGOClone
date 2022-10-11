@@ -28,7 +28,7 @@ public class SplashScreen extends Screen {
 
 	@Override
 	public void buildBuffers() {
-		this.splashTexture = new Texture("/splash_screen/astolfo_plush.png", false, true, true);
+		this.splashTexture = new Texture("/splash_screen/astolfo_plush.png", Texture.VERTICAL_FLIP_BIT | Texture.HORIZONTAL_FLIP_BIT);
 	}
 
 	@Override
