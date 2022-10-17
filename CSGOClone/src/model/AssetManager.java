@@ -12,9 +12,7 @@ import graphics.Texture;
 public class AssetManager {
 	// manages all of our assets
 
-	// when loading, check against the asset manager to make sure you haven't loaded
-	// that
-	// particular asset before.
+	// when loading, check against the asset manager to make sure you haven't loaded that particular asset before.
 
 	public static HashMap<String, Model> models = new HashMap<>();
 	public static HashMap<String, Texture> textures = new HashMap<>();

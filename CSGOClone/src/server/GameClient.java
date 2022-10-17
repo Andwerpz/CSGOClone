@@ -6,6 +6,7 @@ import java.util.HashSet;
 
 import util.Pair;
 import util.Vec3;
+import weapon.Weapon;
 
 public class GameClient extends Client {
 
@@ -23,12 +24,12 @@ public class GameClient extends Client {
 
 	private ArrayList<Pair<String, String>> killfeed;
 
-	private ArrayList<Pair<Integer, Vec3[]>> inBulletRays; //player id, bullet ray. 
-	private ArrayList<Pair<Integer, Vec3[]>> outBulletRays;
+	private ArrayList<Pair<Integer, Pair<Integer, Vec3[]>>> inBulletRays; //player id, (weapon id, bullet ray)
+	private ArrayList<Pair<Integer, Pair<Integer, Vec3[]>>> outBulletRays;
 
-	private ArrayList<Pair<Integer, int[]>> inDamageSources;
-	private ArrayList<Pair<Integer, int[]>> outDamageSources; //player id, reciever id, damage amt
-	
+	private ArrayList<Pair<Integer, int[]>> inDamageSources; //player id, reciever id, damage amt
+	private ArrayList<Pair<Integer, int[]>> outDamageSources;
+
 	private ArrayList<String> serverMessages;
 
 	private boolean shouldRespawn = false;
@@ -36,7 +37,7 @@ public class GameClient extends Client {
 
 	private boolean writeRespawn = false;
 	private int writeRespawnHealth;
-	
+
 	private boolean writeNickname = false;
 	private String nickname;
 
@@ -57,7 +58,7 @@ public class GameClient extends Client {
 
 		this.inDamageSources = new ArrayList<>();
 		this.outDamageSources = new ArrayList<>();
-		
+
 		this.serverMessages = new ArrayList<>();
 
 		this.respawnPos = new Vec3(0);
@@ -77,10 +78,11 @@ public class GameClient extends Client {
 
 		if (this.outBulletRays.size() != 0) {
 			packetSender.writeSectionHeader("bullet_rays", this.outBulletRays.size());
-			for (Pair<Integer, Vec3[]> p : this.outBulletRays) {
+			for (Pair<Integer, Pair<Integer, Vec3[]>> p : this.outBulletRays) {
 				packetSender.write(this.ID);
-				packetSender.write(p.second[0]);
-				packetSender.write(p.second[1]);
+				packetSender.write(p.second.first);
+				packetSender.write(p.second.second[0]);
+				packetSender.write(p.second.second[1]);
 			}
 			this.outBulletRays.clear();
 		}
@@ -100,8 +102,8 @@ public class GameClient extends Client {
 			packetSender.write(this.lifeID);
 			this.writeRespawn = false;
 		}
-		
-		if(this.writeNickname) {
+
+		if (this.writeNickname) {
 			packetSender.writeSectionHeader("set_nickname", 1);
 			packetSender.write(this.nickname.length());
 			packetSender.write(this.nickname);
@@ -163,9 +165,10 @@ public class GameClient extends Client {
 			case "bullet_rays":
 				for (int i = 0; i < elementAmt; i++) {
 					int playerID = packetListener.readInt();
+					int weaponID = packetListener.readInt();
 					Vec3 ray_origin = packetListener.readVec3();
 					Vec3 ray_dir = packetListener.readVec3();
-					this.inBulletRays.add(new Pair<Integer, Vec3[]>(playerID, new Vec3[] { ray_origin, ray_dir }));
+					this.inBulletRays.add(new Pair<Integer, Pair<Integer, Vec3[]>>(playerID, new Pair<Integer, Vec3[]>(weaponID, new Vec3[] { ray_origin, ray_dir })));
 				}
 				break;
 
@@ -173,9 +176,9 @@ public class GameClient extends Client {
 				this.respawnPos = packetListener.readVec3();
 				this.shouldRespawn = true;
 				break;
-				
+
 			case "server_messages":
-				for(int i = 0; i < elementAmt; i++) {
+				for (int i = 0; i < elementAmt; i++) {
 					int sLength = packetListener.readInt();
 					String s = packetListener.readString(sLength);
 					this.serverMessages.add(s);
@@ -211,8 +214,8 @@ public class GameClient extends Client {
 		return ans;
 	}
 
-	public ArrayList<Pair<Integer, Vec3[]>> getBulletRays() {
-		ArrayList<Pair<Integer, Vec3[]>> ans = new ArrayList<>();
+	public ArrayList<Pair<Integer, Pair<Integer, Vec3[]>>> getBulletRays() {
+		ArrayList<Pair<Integer, Pair<Integer, Vec3[]>>> ans = new ArrayList<>();
 		ans.addAll(this.inBulletRays);
 		this.inBulletRays.clear();
 		return ans;
@@ -224,8 +227,8 @@ public class GameClient extends Client {
 		this.inDamageSources.clear();
 		return ans;
 	}
-	
-	public ArrayList<String> getServerMessages(){
+
+	public ArrayList<String> getServerMessages() {
 		ArrayList<String> ans = new ArrayList<>();
 		ans.addAll(this.serverMessages);
 		this.serverMessages.clear();
@@ -257,8 +260,8 @@ public class GameClient extends Client {
 		return this.ID;
 	}
 
-	public void addBulletRay(Vec3 ray_origin, Vec3 ray_dir) {
-		this.outBulletRays.add(new Pair<Integer, Vec3[]>(this.ID, new Vec3[] { ray_origin, ray_dir }));
+	public void addBulletRay(Weapon weapon, Vec3 ray_origin, Vec3 ray_dir) {
+		this.outBulletRays.add(new Pair<Integer, Pair<Integer, Vec3[]>>(this.ID, new Pair<Integer, Vec3[]>(weapon.getWeaponID(), new Vec3[] { ray_origin, ray_dir })));
 	}
 
 	public void addDamageSource(int receiverID, int damage) {
@@ -273,7 +276,7 @@ public class GameClient extends Client {
 	public void setPos(Vec3 pos) {
 		this.pos = new Vec3(pos);
 	}
-	
+
 	public void setNickname(String nickname) {
 		this.nickname = nickname;
 		this.writeNickname = true;

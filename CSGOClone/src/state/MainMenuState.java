@@ -2,6 +2,7 @@ package state;
 
 import java.awt.Font;
 
+import audio.Sound;
 import entity.Entity;
 import graphics.Framebuffer;
 import graphics.Texture;
@@ -37,6 +38,8 @@ public class MainMenuState extends State {
 	private PerspectiveScreen perspectiveScreen; // 3D background
 	private UIScreen uiScreen; // Menu UI
 
+	private Sound menuMusic;
+
 	private long startTime;
 
 	public MainMenuState(StateManager sm) {
@@ -64,12 +67,17 @@ public class MainMenuState extends State {
 		Scene.skyboxes.put(BACKGROUND_SCENE, AssetManager.getSkybox("stars_skybox"));
 
 		this.drawMainMenu();
+
+		menuMusic = new Sound("csgo_main_menu.ogg", true);
+		menuMusic.addSource();
 	}
 
 	@Override
 	public void kill() {
 		this.perspectiveScreen.kill();
 		this.uiScreen.kill();
+
+		this.menuMusic.kill();
 	}
 
 	private void drawMainMenu() {

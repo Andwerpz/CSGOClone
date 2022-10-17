@@ -28,10 +28,10 @@ public class GameServer extends Server {
 	private HashMap<Integer, String> playerNicknames;
 
 	private ArrayList<Integer> disconnectedClients;
-	private ArrayList<Pair<Integer, Vec3[]>> bulletRays;
+	private ArrayList<Pair<Integer, Pair<Integer, Vec3[]>>> bulletRays;
 	private ArrayList<Pair<Integer, int[]>> damageSources;
 	private ArrayList<Pair<String, String>> killfeed;
-	
+
 	private ArrayList<String> serverMessages;
 
 	public GameServer(String ip, int port) {
@@ -48,7 +48,7 @@ public class GameServer extends Server {
 		this.killfeed = new ArrayList<>();
 
 		this.disconnectedClients = new ArrayList<>();
-		
+
 		this.serverMessages = new ArrayList<>();
 	}
 
@@ -122,16 +122,17 @@ public class GameServer extends Server {
 
 		if (this.bulletRays.size() != 0) {
 			packetSender.writeSectionHeader("bullet_rays", this.bulletRays.size());
-			for (Pair<Integer, Vec3[]> p : this.bulletRays) {
+			for (Pair<Integer, Pair<Integer, Vec3[]>> p : this.bulletRays) {
 				packetSender.write(p.first);
-				packetSender.write(p.second[0]);
-				packetSender.write(p.second[1]);
+				packetSender.write(p.second.first);
+				packetSender.write(p.second.second[0]);
+				packetSender.write(p.second.second[1]);
 			}
 		}
-		
-		if(this.serverMessages.size() != 0) {
+
+		if (this.serverMessages.size() != 0) {
 			packetSender.writeSectionHeader("server_messages", this.serverMessages.size());
-			for(String s : this.serverMessages) {
+			for (String s : this.serverMessages) {
 				packetSender.write(s.length());
 				packetSender.write(s);
 			}
@@ -162,9 +163,10 @@ public class GameServer extends Server {
 			case "bullet_rays":
 				for (int i = 0; i < elementAmt; i++) {
 					int playerID = packetListener.readInt();
+					int weaponID = packetListener.readInt();
 					Vec3 ray_origin = packetListener.readVec3();
 					Vec3 ray_dir = packetListener.readVec3();
-					this.bulletRays.add(new Pair<Integer, Vec3[]>(playerID, new Vec3[] { ray_origin, ray_dir }));
+					this.bulletRays.add(new Pair<Integer, Pair<Integer, Vec3[]>>(playerID, new Pair<Integer, Vec3[]>(weaponID, new Vec3[] { ray_origin, ray_dir })));
 				}
 				break;
 
@@ -189,7 +191,7 @@ public class GameServer extends Server {
 				this.playerHealths.put(clientID, health);
 				this.playerLifeIDs.put(clientID, lifeID);
 				break;
-				
+
 			case "set_nickname":
 				int nickLength = packetListener.readInt();
 				String nickname = packetListener.readString(nickLength);
@@ -207,14 +209,14 @@ public class GameServer extends Server {
 		this.playerLifeIDs.put(clientID, 0);
 		this.playerNicknames.put(clientID, "" + clientID);
 		this.connectedClients.add(clientID);
-		
+
 		this.serverMessages.add(this.playerNicknames.get(clientID) + " connected");
 	}
 
 	@Override
 	public void _clientDisconnect(int clientID) {
 		this.serverMessages.add(this.playerNicknames.get(clientID) + " disconnected");
-		
+
 		this.playerPositions.remove(clientID);
 		this.playerHealths.remove(clientID);
 		this.playerLifeIDs.remove(clientID);

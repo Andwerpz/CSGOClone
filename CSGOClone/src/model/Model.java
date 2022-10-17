@@ -299,7 +299,7 @@ public class Model {
 	}
 
 	public static BufferedImage loadImage(String path) {
-		String fileExtension = getFileExtension(path);
+		String fileExtension = FileUtils.getFileExtension(path);
 		switch (fileExtension) {
 		case "png":
 			return GraphicsTools.verticalFlip(FileUtils.loadImage(path));
@@ -316,16 +316,6 @@ public class Model {
 
 		System.err.println("File extension " + fileExtension + " is not supported");
 		return null;
-	}
-
-	public static String getFileExtension(String path) {
-		int lastPeriod = path.lastIndexOf('.');
-		return path.substring(lastPeriod + 1);
-	}
-
-	public static String removeFileExtension(String path) {
-		int lastPeriod = path.lastIndexOf('.');
-		return path.substring(0, lastPeriod);
 	}
 
 	public static int getScene(long ID) {

@@ -7,14 +7,18 @@ import static org.lwjgl.opengl.GL14.*;
 import static org.lwjgl.opengl.GL13.*;
 import static org.lwjgl.opengl.GL30.*;
 
+import static org.lwjgl.openal.AL10.*;
+
 import java.awt.Color;
 import java.awt.Font;
+import java.nio.FloatBuffer;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Queue;
 import java.util.Stack;
 
+import audio.Sound;
 import entity.Capsule;
 import entity.Entity;
 import graphics.Framebuffer;
@@ -44,6 +48,7 @@ import server.GameServer;
 import ui.Text;
 import ui.UIElement;
 import ui.UIFilledRectangle;
+import util.BufferUtils;
 import util.FontUtils;
 import util.Mat4;
 import util.MathUtils;
@@ -106,7 +111,7 @@ public class GameState extends State {
 	private long mapID;
 
 	private Model bloodDecal, bulletHoleDecal;
-	private ArrayList<Pair<Integer, Vec3[]>> bulletRays;
+	private ArrayList<Pair<Integer, Pair<Integer, Vec3[]>>> bulletRays;
 
 	private boolean playerControlsDisabled = false;
 	private boolean leftMouse = false;
@@ -206,7 +211,7 @@ public class GameState extends State {
 		crosshairRect2.setFrameAlignmentStyle(UIElement.FROM_CENTER_LEFT, UIElement.FROM_CENTER_BOTTOM);
 		crosshairRect1.setContentAlignmentStyle(UIElement.ALIGN_CENTER, UIElement.ALIGN_CENTER);
 		crosshairRect2.setContentAlignmentStyle(UIElement.ALIGN_CENTER, UIElement.ALIGN_CENTER);
-		
+
 		Material crosshairMaterial = new Material(new Vec4(0, 1, 0, 0.5f));
 		crosshairRect1.setMaterial(crosshairMaterial);
 		crosshairRect2.setMaterial(crosshairMaterial);
@@ -243,7 +248,7 @@ public class GameState extends State {
 		TextureMaterial weaponPreviewTexture = new TextureMaterial(weaponPreviewColorMap);
 		this.weaponPreviewRectangle = new FilledRectangle();
 		this.weaponPreviewRectangle.setTextureMaterial(weaponPreviewTexture);
-		
+
 		UIFilledRectangle weaponPreviewUIRectangle = new UIFilledRectangle(0, 0, 0, 640, 360, weaponPreviewRectangle, BUY_SCENE_DYNAMIC);
 		weaponPreviewUIRectangle.setFrameAlignmentStyle(UIElement.FROM_CENTER_RIGHT, UIElement.FROM_CENTER_TOP);
 		weaponPreviewUIRectangle.setContentAlignmentStyle(UIElement.ALIGN_LEFT, UIElement.ALIGN_BOTTOM);
@@ -352,7 +357,7 @@ public class GameState extends State {
 		Button buyDeagleButton = new Button(10, 170, 200, 30, "btn_buy_deagle", "Deagle", FontUtils.CSGOFont, 32, BUY_SCENE_DYNAMIC);
 		buyDeagleButton.setFrameAlignmentStyle(UIElement.FROM_CENTER_LEFT, UIElement.FROM_CENTER_TOP);
 		buyDeagleButton.setContentAlignmentStyle(UIElement.ALIGN_RIGHT, UIElement.ALIGN_BOTTOM);
-		
+
 		this.weaponPreviewDescription = new Text(10, 10, 0, 640 - 20, " ", FontUtils.segoe_ui, 20, Color.WHITE, BUY_SCENE_DYNAMIC);
 		this.weaponPreviewDescription.setFrameAlignmentStyle(UIElement.FROM_CENTER_RIGHT, UIElement.FROM_CENTER_BOTTOM);
 		this.weaponPreviewDescription.setContentAlignmentStyle(UIElement.ALIGN_LEFT, UIElement.ALIGN_TOP);
@@ -387,9 +392,14 @@ public class GameState extends State {
 			Vec3 ray_dir = this.weapon.shoot(this.player);
 			Vec3 ray_origin = perspectiveScreen.getCamera().getPos();
 
-			this.client.addBulletRay(ray_origin, ray_dir);
-			this.bulletRays.add(new Pair<Integer, Vec3[]>(-1, new Vec3[] { ray_origin, ray_dir }));
+			this.client.addBulletRay(this.weapon, ray_origin, ray_dir);
+			this.bulletRays.add(new Pair<Integer, Pair<Integer, Vec3[]>>(-1, new Pair<Integer, Vec3[]>(this.weapon.getWeaponID(), new Vec3[] { ray_origin, ray_dir })));
 			this.computeBulletDamage(ray_origin, ray_dir);
+
+			int shotSoundID = this.weapon.getFiringSound().addSource();
+			Sound.setGain(shotSoundID, 3);
+			Sound.setReferenceDistance(shotSoundID, 2);
+			Sound.setRelativePosition(shotSoundID, new Vec3(0));
 		}
 	}
 
@@ -495,6 +505,9 @@ public class GameState extends State {
 
 	@Override
 	public void update() {
+		// -- AUDIO --
+		Sound.cullAllStoppedSources();
+
 		// -- MENU --
 		Input.inputsHovered(uiScreen.getEntityIDAtMouse());
 
@@ -526,7 +539,7 @@ public class GameState extends State {
 			if (this.weaponPreviewModelID != 0) {
 				Model.removeInstance(this.weaponPreviewModelID);
 			}
-			
+
 			this.weaponPreviewModelID = Model.addInstance(AssetManager.getModel(this.weaponPreviewModelName), Mat4.identity(), WEAPON_PREVIEW_SCENE);
 			this.weaponPreviewDescription.setText(nextWeapon.getDescription());
 		}
@@ -620,13 +633,22 @@ public class GameState extends State {
 
 		// process decals and damage from bullets
 		this.bulletRays.addAll(this.client.getBulletRays());
-		for (Pair<Integer, Vec3[]> p : this.bulletRays) {
+		for (Pair<Integer, Pair<Integer, Vec3[]>> p : this.bulletRays) {
 			int clientID = p.first;
-			Vec3 ray_origin = p.second[0];
-			Vec3 ray_dir = p.second[1];
+			int weaponID = p.second.first;
+			Vec3 ray_origin = p.second.second[0];
+			Vec3 ray_dir = p.second.second[1];
 
 			if (clientID == this.client.getID()) { //already processed when it was initially shot
 				continue;
+			}
+
+			if (clientID != -1) {
+				//add firing sound effect
+				int firingSoundID = Weapon.getFiringSound(weaponID).addSource();
+				Sound.setPosition(firingSoundID, ray_origin);
+				Sound.setGain(firingSoundID, 3);
+				Sound.setReferenceDistance(firingSoundID, 2);
 			}
 
 			ArrayList<Vec3> playerIntersections = new ArrayList<>();
@@ -744,6 +766,14 @@ public class GameState extends State {
 		updateCamera();
 
 		this.client.setPos(this.player.pos);
+
+		// -- AUDIO --
+		Vec3 cameraPos = this.perspectiveScreen.getCamera().getPos();
+		alListener3f(AL_POSITION, cameraPos.x, cameraPos.y, cameraPos.z);
+		Vec3 cameraFacing = this.perspectiveScreen.getCamera().getFacing();
+		Vec3 cameraUp = new Vec3(0, 1, 0);
+		FloatBuffer cameraOrientation = BufferUtils.createFloatBuffer(new float[] { cameraFacing.x, cameraFacing.y, cameraFacing.z, cameraUp.x, cameraUp.y, cameraUp.z });
+		alListenerfv(AL_ORIENTATION, cameraOrientation);
 
 	}
 
@@ -887,7 +917,6 @@ public class GameState extends State {
 			}
 			break;
 		}
-
 	}
 
 	@Override

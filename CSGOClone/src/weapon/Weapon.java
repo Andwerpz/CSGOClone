@@ -1,5 +1,6 @@
 package weapon;
 
+import audio.Sound;
 import main.Main;
 import model.Model;
 import player.Player;
@@ -8,6 +9,12 @@ import util.Pair;
 import util.Vec3;
 
 public abstract class Weapon {
+
+	public static final int WEAPON_AK47 = 1;
+	public static final int WEAPON_AWP = 2;
+	public static final int WEAPON_DEAGLE = 3;
+	public static final int WEAPON_M4A4 = 4;
+	public static final int WEAPON_USPS = 5;
 
 	private int magazineAmmoSize, magazineAmmo;
 	private int reserveAmmoSize, reserveAmmo;
@@ -50,9 +57,9 @@ public abstract class Weapon {
 
 	private boolean infiniteReserveAmmo = false;
 	private boolean infiniteMagazineAmmo = false;
-	
+
 	protected String description;
-	
+
 	protected int cost;
 	protected int killReward;
 
@@ -73,6 +80,35 @@ public abstract class Weapon {
 	}
 
 	public abstract String getModelName();
+
+	public abstract Sound getFiringSound();
+
+	public abstract int getWeaponID();
+
+	public static Sound getFiringSound(int weaponID) {
+		return Weapon.getWeapon(weaponID).getFiringSound();
+	}
+
+	public static Weapon getWeapon(int weaponID) {
+		switch (weaponID) {
+		case WEAPON_AK47:
+			return new AK47();
+
+		case WEAPON_AWP:
+			return new AWP();
+
+		case WEAPON_M4A4:
+			return new M4A4();
+
+		case WEAPON_DEAGLE:
+			return new Deagle();
+
+		case WEAPON_USPS:
+			return new Usps();
+		}
+
+		return null;
+	}
 
 	public boolean canShoot() {
 		return this.fireMillisCounter >= this.fireDelayMillis && this.magazineAmmo > 0 && !this.reloading;
@@ -158,7 +194,7 @@ public abstract class Weapon {
 	public int getMagazineAmmo() {
 		return this.magazineAmmo;
 	}
-	
+
 	public String getDescription() {
 		return this.description;
 	}

@@ -26,6 +26,7 @@ public class StateManager {
 		this.buildBuffers();
 
 		this.activeState = null;
+		//this.loadState = new LoadState(this, new SplashState(this));
 		this.loadState = new LoadState(this, new MainMenuState(this));
 	}
 
