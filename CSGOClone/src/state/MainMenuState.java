@@ -69,7 +69,9 @@ public class MainMenuState extends State {
 		this.drawMainMenu();
 
 		menuMusic = new Sound("csgo_main_menu.ogg", true);
-		menuMusic.addSource();
+		int menuMusicID = menuMusic.addSource();
+		Sound.setRelativePosition(menuMusicID, new Vec3(0));
+		Sound.setGain(menuMusicID, 0.3f);
 	}
 
 	@Override

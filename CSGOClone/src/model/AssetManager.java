@@ -31,8 +31,9 @@ public class AssetManager {
 		paths.put("sphere", new String[] { "/sphere/", "sphere.obj" });
 		paths.put("cylinder", new String[] { "/cylinder/", "cylinder.obj" });
 
-		paths.put("blood_splatter_texture", new String[] { "decal/blood_splatter.png", GL_NEAREST_MIPMAP_NEAREST + "", GL_NEAREST + "", 1 + "" });
-		paths.put("bullet_hole_texture", new String[] { "decal/bullet_hole.png", GL_NEAREST_MIPMAP_NEAREST + "", GL_NEAREST + "", 1 + "" });
+		//paths.put("blood_splatter_texture", new String[] { "decal/blood_splatter.png", GL_LINEAR_MIPMAP_LINEAR + "", GL_LINEAR + "", 5 + "" });
+		paths.put("bullet_hole_texture", new String[] { "decal/bullet_hole.png", GL_LINEAR_MIPMAP_LINEAR + "", GL_LINEAR + "", 5 + "" });
+		paths.put("blood_splatter_texture", new String[] { "decal/blood-splatter-png-image-0.png", GL_LINEAR_MIPMAP_LINEAR + "", GL_LINEAR + "", 5 + "" });
 
 		paths.put("lake_skybox", new String[] { "/skybox/lake/right.jpg", "/skybox/lake/left.jpg", "/skybox/lake/top.jpg", "/skybox/lake/bottom.jpg", "/skybox/lake/front.jpg", "/skybox/lake/back.jpg" });
 		paths.put("stars_skybox", new String[] { "/skybox/stars/right.png", "/skybox/stars/left.png", "/skybox/stars/top.png", "/skybox/stars/bottom.png", "/skybox/stars/front.png", "/skybox/stars/back.png" });

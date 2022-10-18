@@ -400,6 +400,7 @@ public class GameState extends State {
 			Sound.setGain(shotSoundID, 3);
 			Sound.setReferenceDistance(shotSoundID, 2);
 			Sound.setRelativePosition(shotSoundID, new Vec3(0));
+			Sound.setRolloffFactor(shotSoundID, 2f);
 		}
 	}
 
@@ -714,7 +715,7 @@ public class GameState extends State {
 					modelMat4.muli(Mat4.rotateY(yRot + (float) (Math.random() * Math.PI / 6f)));
 					modelMat4.muli(Mat4.translate(minVec));
 					long bloodSplatterID = Model.addInstance(this.bloodDecal, modelMat4, DECAL_SCENE);
-					Model.updateInstance(bloodSplatterID, new Material(new Vec4(1), new Vec4(0.7f), 256f));
+					Model.updateInstance(bloodSplatterID, new Material(new Vec4(1), new Vec4(0f), 256f));
 					this.decalIDs.add(bloodSplatterID);
 				}
 

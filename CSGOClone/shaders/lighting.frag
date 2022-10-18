@@ -154,7 +154,7 @@ void main()
    	 	float backfaceBias = texture(shadowBackfaceMap, projCoords.xy).r == 1? 0 : 0;
    	 	//float backfaceBias = 0;
    	 	
-   	 	//float bias = max(0.001 * (1.0 - dot(normal, lightDir)), 0.005);  
+   	 	//float bias = max(0.0003 * (1.0 - dot(normal, lightDir)), 0.0005);  
    	 	float bias = 0.0001;
    	 	
    	 	vec2 texelSize = 1.0 / textureSize(shadowMap, 0);

@@ -198,6 +198,7 @@ public class PerspectiveScreen extends Screen {
 		Model.renderModels(this.world_scene);
 
 		// -- DECALS -- : screen space decals
+		//decals can be transparent, but they cannot have a shininess value greater than 0. 
 		if (this.renderDecals) {
 			geometryBuffer.bind();
 			glEnable(GL_DEPTH_TEST);
@@ -207,11 +208,17 @@ public class PerspectiveScreen extends Screen {
 			glCullFace(GL_BACK);
 			glPolygonMode(GL_FRONT, GL_FILL);
 
+			glEnable(GL_BLEND);
+			//first two are for rgb, while last two are for alpha
+			glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ONE);
+
 			Shader.DECAL.enable();
 			Shader.DECAL.setUniformMat4("pr_matrix", camera.getProjectionMatrix());
 			Shader.DECAL.setUniformMat4("vw_matrix", camera.getViewMatrix());
 			this.geometryPositionMap.bind(GL_TEXTURE4);
 			Model.renderModels(this.decal_scene);
+
+			glDisable(GL_BLEND);
 		}
 
 		// -- PLAYERMODEL -- : gun and hands

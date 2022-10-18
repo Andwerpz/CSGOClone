@@ -61,7 +61,7 @@ public class GameServer extends Server {
 			int receiverLifeID = p.second[3];
 			int damage = p.second[1];
 
-			if (this.connectedClients.contains(receiverID) && this.playerLifeIDs.get(receiverID) == receiverLifeID) {
+			if (this.connectedClients.contains(receiverID) && this.playerLifeIDs.get(receiverID) == receiverLifeID && this.connectedClients.contains(aggressorID) && this.playerLifeIDs.get(aggressorID) == aggressorLifeID) {
 				if (!this.connectedClients.contains(aggressorID) || this.playerHealths.get(aggressorID) <= 0) {
 					continue;
 				}
