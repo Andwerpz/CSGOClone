@@ -32,12 +32,18 @@ public class Player extends Entity {
 	public static float epsilon = 0.00001f;
 	public static float gravity = 0.005f;
 
+	private static float runningSpeed = 0.05f;
+	private static float walkingSpeed = 0.02f; //TBD
+
 	public Vec3 pos, vel;
 	public float radius = 0.33f;
 	public float height = 1f;
 	public int scene;
 	private boolean onGround = false;
 	private Vec3 groundNormal = new Vec3(0);
+
+	private static float landingSpeed = 0.085f;
+	private boolean hasLanded = false;
 
 	private boolean acceptPlayerInputs = true;
 
@@ -153,6 +159,7 @@ public class Player extends Entity {
 			}
 			if (onGround) {
 				Vec3 groundCorrection = inputAccel.projectOnto(groundNormal);
+				groundCorrection.y = -(Math.abs(groundCorrection.y));
 				inputAccel.addi(groundCorrection);
 			}
 			inputAccel.setLength(this.onGround ? groundMoveSpeed : airMoveSpeed);
@@ -171,6 +178,10 @@ public class Player extends Entity {
 
 	// check if on the ground, and if so, then compute the ground normal
 	private void groundCheck() {
+		this.hasLanded = true;
+		if (-this.vel.y < landingSpeed) {
+			this.hasLanded = false;
+		}
 		onGround = false;
 		groundNormal = new Vec3(0);
 		Vec3 capsule_bottomSphere = pos.add(new Vec3(0, radius, 0));
@@ -183,6 +194,9 @@ public class Player extends Entity {
 				groundNormal.addi(toCenter.normalize());
 				onGround = true;
 			}
+		}
+		if (!onGround) {
+			this.hasLanded = false;
 		}
 		groundNormal.normalize();
 	}
@@ -198,11 +212,7 @@ public class Player extends Entity {
 		ArrayList<Vec3[]> intersections = Model.capsuleIntersect(scene, capsule_bottom, capsule_top, radius - 0.01f);
 		for (Vec3[] a : intersections) {
 			Vec3 v = a[0];
-			Vec3 capsule_c = MathUtils.point_lineSegmentProjectClamped(v, capsule_bottomSphere, capsule_topSphere); // closest
-			// point
-			// on
-			// capsule
-			// midline
+			Vec3 capsule_c = MathUtils.point_lineSegmentProjectClamped(v, capsule_bottomSphere, capsule_topSphere); // closest point on capsule midline
 			Vec3 toCenter = new Vec3(v, capsule_c);
 
 			Vec3 normToCenter = new Vec3(toCenter).normalize();
@@ -214,6 +224,18 @@ public class Player extends Entity {
 				this.pos.addi(toCenter.mul(1f + epsilon));
 			}
 		}
+	}
+
+	public boolean isOnGround() {
+		return this.onGround;
+	}
+
+	public boolean isRunning() {
+		return this.vel.length() > runningSpeed && this.isOnGround();
+	}
+
+	public boolean hasLanded() {
+		return this.hasLanded;
 	}
 
 }

@@ -31,6 +31,7 @@ public class GameServer extends Server {
 	private ArrayList<Pair<Integer, Pair<Integer, Vec3[]>>> bulletRays;
 	private ArrayList<Pair<Integer, int[]>> damageSources;
 	private ArrayList<Pair<String, String>> killfeed;
+	private ArrayList<Pair<Integer, Pair<Integer, float[]>>> footsteps; //footstep type, x, y, z
 
 	private ArrayList<String> serverMessages;
 
@@ -46,6 +47,7 @@ public class GameServer extends Server {
 		this.damageSources = new ArrayList<>();
 		this.bulletRays = new ArrayList<>();
 		this.killfeed = new ArrayList<>();
+		this.footsteps = new ArrayList<>();
 
 		this.disconnectedClients = new ArrayList<>();
 
@@ -138,6 +140,15 @@ public class GameServer extends Server {
 			}
 		}
 
+		if (this.footsteps.size() != 0) {
+			packetSender.writeSectionHeader("footsteps", this.footsteps.size());
+			for (Pair<Integer, Pair<Integer, float[]>> p : this.footsteps) {
+				packetSender.write(p.first);
+				packetSender.write(p.second.first);
+				packetSender.write(p.second.second);
+			}
+		}
+
 	}
 
 	@Override
@@ -146,6 +157,7 @@ public class GameServer extends Server {
 		bulletRays.clear();
 		killfeed.clear();
 		serverMessages.clear();
+		footsteps.clear();
 	}
 
 	@Override
@@ -197,6 +209,15 @@ public class GameServer extends Server {
 				String nickname = packetListener.readString(nickLength);
 				this.serverMessages.add(this.playerNicknames.get(clientID) + " changed their name to " + nickname);
 				this.playerNicknames.put(clientID, nickname);
+				break;
+
+			case "footsteps":
+				for (int i = 0; i < elementAmt; i++) {
+					int sourceClientID = packetListener.readInt();
+					int footstepType = packetListener.readInt();
+					float[] coords = packetListener.readNFloats(3);
+					this.footsteps.add(new Pair<Integer, Pair<Integer, float[]>>(sourceClientID, new Pair<Integer, float[]>(footstepType, coords)));
+				}
 				break;
 			}
 		}

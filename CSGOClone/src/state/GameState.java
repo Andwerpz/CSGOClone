@@ -82,6 +82,9 @@ public class GameState extends State {
 	private static final int DECAL_LIMIT = 1000;
 	private Queue<Long> decalIDs;
 
+	private static final int FOOTSTEP_TYPE_STEP = 0;
+	private static final int FOOTSTEP_TYPE_LANDING = 1;
+
 	private String ip;
 	private int port;
 
@@ -142,6 +145,13 @@ public class GameState extends State {
 
 	private Weapon weapon;
 
+	private static int numFootstepSounds = 16;
+	private Sound[] footstepSounds;
+	private Vec3 lastFootstepPos = new Vec3(0);
+
+	private static int numLandingSounds = 4;
+	private Sound[] landingSounds;
+
 	public GameState(StateManager sm, String ip, int port, boolean hosting) {
 		super(sm);
 		this.ip = ip;
@@ -181,6 +191,16 @@ public class GameState extends State {
 		this.decalIDs = new ArrayDeque<>();
 		this.killfeed = new ArrayList<>();
 		this.serverMessages = new ArrayList<>();
+
+		this.footstepSounds = new Sound[numFootstepSounds];
+		for (int i = 0; i < numFootstepSounds; i++) {
+			this.footstepSounds[i] = new Sound("/footstep/concrete" + (i + 1) + ".ogg", false);
+		}
+
+		this.landingSounds = new Sound[numLandingSounds];
+		for (int i = 0; i < numLandingSounds; i++) {
+			this.landingSounds[i] = new Sound("/land/land" + (i + 1) + ".ogg", false);
+		}
 
 		Main.lockCursor();
 		Entity.killAll();
@@ -396,11 +416,11 @@ public class GameState extends State {
 			this.bulletRays.add(new Pair<Integer, Pair<Integer, Vec3[]>>(-1, new Pair<Integer, Vec3[]>(this.weapon.getWeaponID(), new Vec3[] { ray_origin, ray_dir })));
 			this.computeBulletDamage(ray_origin, ray_dir);
 
-			int shotSoundID = this.weapon.getFiringSound().addSource();
-			Sound.setGain(shotSoundID, 3);
-			Sound.setReferenceDistance(shotSoundID, 2);
-			Sound.setRelativePosition(shotSoundID, new Vec3(0));
-			Sound.setRolloffFactor(shotSoundID, 2f);
+			int firingSoundID = this.weapon.getFiringSound().addSource();
+			Sound.setGain(firingSoundID, 3);
+			Sound.setReferenceDistance(firingSoundID, 2);
+			Sound.setRelativePosition(firingSoundID, new Vec3(0, 0, -1));
+			Sound.setRolloffFactor(firingSoundID, 2f);
 		}
 	}
 
@@ -509,6 +529,67 @@ public class GameState extends State {
 		// -- AUDIO --
 		Sound.cullAllStoppedSources();
 
+		//self footsteps
+		if (this.player.isOnGround() && this.player.isRunning()) {
+			//check if previous footstep position is far away. 
+			Vec3 toPrevFootstep = new Vec3(this.player.pos, this.lastFootstepPos);
+			if (toPrevFootstep.length() > (0.05f * 20)) {
+				this.lastFootstepPos.set(this.player.pos);
+				int footstepSoundID = this.footstepSounds[(int) (Math.random() * numFootstepSounds)].addSource();
+				Sound.setGain(footstepSoundID, 0.6f);
+				Sound.setReferenceDistance(footstepSoundID, 2);
+				Sound.setRelativePosition(footstepSoundID, new Vec3(0, -1.5f, 0));
+				Sound.setRolloffFactor(footstepSoundID, 2f);
+
+				this.client.addFootstep(FOOTSTEP_TYPE_STEP, this.player.pos.add(new Vec3(0, -1.5f, 0)));
+			}
+		}
+		if (this.player.vel.length() < 0.0001f) {
+			this.lastFootstepPos.set(this.player.pos);
+		}
+
+		if (this.player.hasLanded()) {
+			int landingSoundID = this.landingSounds[(int) (Math.random() * numLandingSounds)].addSource();
+			Sound.setGain(landingSoundID, 0.6f);
+			Sound.setReferenceDistance(landingSoundID, 2);
+			Sound.setRelativePosition(landingSoundID, new Vec3(0, -1.5f, 0));
+			Sound.setRolloffFactor(landingSoundID, 2f);
+
+			this.client.addFootstep(FOOTSTEP_TYPE_LANDING, this.player.pos.add(new Vec3(0, -1.5f, 0)));
+		}
+
+		//others footsteps
+		ArrayList<Pair<Integer, Pair<Integer, float[]>>> footsteps = this.client.getFootsteps();
+		for (Pair<Integer, Pair<Integer, float[]>> p : footsteps) {
+			int sourceClientID = p.first;
+			int footstepType = p.second.first;
+			Vec3 footstepPos = new Vec3(p.second.second);
+
+			if (sourceClientID == this.client.getID()) { //footstep made by self. 
+				continue;
+			}
+
+			int footstepSoundID = -1;
+			switch (footstepType) {
+			case FOOTSTEP_TYPE_STEP:
+				footstepSoundID = this.footstepSounds[(int) (Math.random() * numFootstepSounds)].addSource();
+				break;
+
+			case FOOTSTEP_TYPE_LANDING:
+				footstepSoundID = this.landingSounds[(int) (Math.random() * numLandingSounds)].addSource();
+				break;
+			}
+
+			if (footstepSoundID == -1) {
+				continue;
+			}
+
+			Sound.setGain(footstepSoundID, 0.6f);
+			Sound.setReferenceDistance(footstepSoundID, 2);
+			Sound.setPosition(footstepSoundID, footstepPos);
+			Sound.setRolloffFactor(footstepSoundID, 4f);
+		}
+
 		// -- MENU --
 		Input.inputsHovered(uiScreen.getEntityIDAtMouse());
 
@@ -590,6 +671,7 @@ public class GameState extends State {
 		if (this.client.shouldRespawn()) {
 			this.respawn();
 		}
+		this.enablePlayerControls();
 
 		// -- SHOOTING --
 		if (this.leftMouse) {

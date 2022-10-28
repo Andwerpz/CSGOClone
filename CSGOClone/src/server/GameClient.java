@@ -30,6 +30,9 @@ public class GameClient extends Client {
 	private ArrayList<Pair<Integer, int[]>> inDamageSources; //player id, reciever id, damage amt
 	private ArrayList<Pair<Integer, int[]>> outDamageSources;
 
+	private ArrayList<Pair<Integer, Pair<Integer, float[]>>> inFootsteps; //footstep type, x, y, z
+	private ArrayList<Pair<Integer, Pair<Integer, float[]>>> outFootsteps;
+
 	private ArrayList<String> serverMessages;
 
 	private boolean shouldRespawn = false;
@@ -58,6 +61,9 @@ public class GameClient extends Client {
 
 		this.inDamageSources = new ArrayList<>();
 		this.outDamageSources = new ArrayList<>();
+
+		this.inFootsteps = new ArrayList<>();
+		this.outFootsteps = new ArrayList<>();
 
 		this.serverMessages = new ArrayList<>();
 
@@ -94,6 +100,16 @@ public class GameClient extends Client {
 				packetSender.write(p.second);
 			}
 			this.outDamageSources.clear();
+		}
+
+		if (this.outFootsteps.size() != 0) {
+			packetSender.writeSectionHeader("footsteps", this.outFootsteps.size());
+			for (Pair<Integer, Pair<Integer, float[]>> p : this.outFootsteps) {
+				packetSender.write(p.first);
+				packetSender.write(p.second.first);
+				packetSender.write(p.second.second);
+			}
+			this.outFootsteps.clear();
 		}
 
 		if (this.writeRespawn) {
@@ -184,6 +200,15 @@ public class GameClient extends Client {
 					this.serverMessages.add(s);
 				}
 				break;
+
+			case "footsteps":
+				for (int i = 0; i < elementAmt; i++) {
+					int sourceClientID = packetListener.readInt();
+					int footstepType = packetListener.readInt();
+					float[] footstepPos = packetListener.readNFloats(3);
+					this.inFootsteps.add(new Pair<Integer, Pair<Integer, float[]>>(sourceClientID, new Pair<Integer, float[]>(footstepType, footstepPos)));
+				}
+				break;
 			}
 		}
 	}
@@ -204,6 +229,13 @@ public class GameClient extends Client {
 		ArrayList<Pair<String, String>> ans = new ArrayList<>();
 		ans.addAll(this.killfeed);
 		this.killfeed.clear();
+		return ans;
+	}
+
+	public ArrayList<Pair<Integer, Pair<Integer, float[]>>> getFootsteps() {
+		ArrayList<Pair<Integer, Pair<Integer, float[]>>> ans = new ArrayList<>();
+		ans.addAll(this.inFootsteps);
+		this.inFootsteps.clear();
 		return ans;
 	}
 
@@ -271,6 +303,10 @@ public class GameClient extends Client {
 		int aggressorLifeID = this.playerLifeIDs.get(this.ID);
 		int receiverLifeID = this.playerLifeIDs.get(receiverID);
 		this.outDamageSources.add(new Pair<Integer, int[]>(this.getID(), new int[] { receiverID, damage, aggressorLifeID, receiverLifeID }));
+	}
+
+	public void addFootstep(int footstepType, Vec3 footstepPos) {
+		this.outFootsteps.add(new Pair<Integer, Pair<Integer, float[]>>(this.getID(), new Pair<Integer, float[]>(footstepType, new float[] { footstepPos.x, footstepPos.y, footstepPos.z })));
 	}
 
 	public void setPos(Vec3 pos) {
